@@ -1,0 +1,65 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+     - License, v. 2.0. If a copy of the MPL was not distributed with this file,
+     - You can obtain one at http://mozilla.org/MPL/2.0/.  -->
+
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/stop.css">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Signatures for {{ product }} &mdash; {{ channel }}</title>
+    <script type="text/javascript" src="/stop.js"></script>
+  </head>
+  <body onload="javascript:loaded()">
+    <form onsubmit="javascript:update();" action="javascript:void(0);" style="display:inline;">
+      Channel:&nbsp;
+      <select id="channel">
+        {% for c in channels -%}
+        {% if c == channel -%}
+        <option value="{{ c }}" selected>{{ c }}</option>
+        {% else -%}
+        <option value="{{ c }}">{{ c }}</option>
+        {% endif -%}
+        {% endfor -%}
+      </select>
+      Product:&nbsp;
+      <select id="product">
+        {% for p in products -%}
+        {% if p == product -%}
+        <option value="{{ p }}" selected>{{ p }}</option>
+        {% else -%}
+        <option value="{{ p }}">{{ p }}</option>
+        {% endif -%}
+        {% endfor -%}
+      </select>
+      <input type="submit"
+             value="Go !"/>
+      </form>
+    {% if data['signatures'] -%}
+    <p>Take care: signatures with inaccessible bugs are not displayed !</p>
+    <p>In moccasin are the builds without the patch and in yellowgreen the builds with.<p>
+      <ul>
+        {% for sgn, i in data['signatures'] -%}
+        <li style="margin:10px 0;"><a href="{{ i['socorro_url'] }}">{{ sgn|e }}</a>:<br>
+          <table border="1">
+            <tr>
+              <th class="norm">build-id</th>
+              {% for pos, bid in enumerate(data['buildids']) %}<td class="{% if pos <= i['position'] -%}without{% else -%}with{% endif -%}"><a href="{{ data['links'][(sgn, bid)] }}">{{ bid }}</a></td>{% endfor -%}
+            </tr>
+            <tr>
+              <th class="norm">crashes</th>
+              {% for n in i['numbers'] %}<td class="num">{{ n }}</td>{% endfor -%}
+            </tr>
+          </table>
+          <ul>
+            <li><a href="https://bugzil.la/{{ i['bugid'] }}">Bug {{ i['bugid'] }}</a></li>
+          </ul>
+        </li>
+        {% endfor -%}
+      </ul>
+      {% else -%}
+    <p>No data for today !</p>
+    {% endif -%}
+  </body>
+</html>

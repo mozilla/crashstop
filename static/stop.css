@@ -1,0 +1,24 @@
+td.num {
+    text-align:center;
+    font-weight:bold;
+}
+
+td.with {
+    background-color:yellowgreen;
+    font-size:80%;
+}
+
+td.without {
+    background-color:moccasin;
+    font-size:80%;
+}
+
+th.norm {
+    font-weight:normal;
+}
+
+table {
+    border:1px solid black;
+    border-collapse:collapse;
+    margin-top:5px;
+}

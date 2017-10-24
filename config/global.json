@@ -1,0 +1,14 @@
+{
+    "products":
+    [
+        "Firefox",
+        "FennecAndroid"
+    ],
+    "channels":
+    [
+        "nightly",
+        "beta",
+        "release"
+    ],
+    "days_limit": 120
+}

@@ -1,0 +1,44 @@
+{
+    "Firefox":
+    {
+        "nightly":
+        {
+            "min_total_crashes": 500,
+            "min_crashes": 3,
+            "versions": 14
+        },
+        "beta":
+        {
+            "min_total_crashes": 1000,
+            "min_crashes": 10,
+            "versions": 8
+        },
+        "release":
+        {
+            "min_total_crashes": 10000,
+            "min_crashes": 100,
+            "versions": 3
+        }
+    },
+    "FennecAndroid":
+    {
+        "nightly":
+        {
+            "min_total_crashes": 300,
+            "min_crashes": 2,
+            "versions": 10
+        },
+        "beta":
+        {
+            "min_total_crashes": 1000,
+            "min_crashes": 10,
+            "versions": 8
+        },
+        "release":
+        {
+            "min_total_crashes": 10000,
+            "min_crashes": 50,
+            "versions": 3
+        }
+    }
+}

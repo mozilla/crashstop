@@ -1,0 +1,44 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this file,
+# You can obtain one at http://mozilla.org/MPL/2.0/.
+
+from flask import Flask, send_from_directory
+from flask_sqlalchemy import SQLAlchemy
+import logging
+import os
+
+
+app = Flask(__name__, template_folder='../templates')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+log = logging.getLogger(__name__)
+
+
+@app.route('/')
+@app.route('/signatures.html')
+def signatures_html():
+    from crashstop import html
+    return html.sgns()
+
+
+@app.route('/')
+@app.route('/bug.html')
+def bug_html():
+    from crashstop import html
+    return html.bug()
+
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory('../static', 'favicon.ico')
+
+
+@app.route('/stop.js')
+def stop_js():
+    return send_from_directory('../static', 'stop.js')
+
+
+@app.route('/stop.css')
+def stop_css():
+    return send_from_directory('../static', 'stop.css')
