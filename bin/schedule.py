@@ -9,7 +9,7 @@ from crashstop import models
 sched = BlockingScheduler()
 
 
-@sched.scheduled_job('cron', minute='25')#hour='0,6,12,18')
+@sched.scheduled_job('cron', minute='36')#hour='0,6,12,18')
 def timed_job():
     models.update()
 
