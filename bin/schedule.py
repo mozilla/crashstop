@@ -4,14 +4,12 @@
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 from crashstop import models
-import logging
 
 
-logging.basicConfig()
 sched = BlockingScheduler()
 
 
-@sched.scheduled_job('cron', hour='0,6,12,18')
+@sched.scheduled_job('cron', minute='25')#hour='0,6,12,18')
 def timed_job():
     models.update()
 
