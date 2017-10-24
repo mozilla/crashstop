@@ -33,6 +33,11 @@ def favicon():
     return send_from_directory('../static', 'favicon.ico')
 
 
+@app.route('/GitHub-Mark-32px.png')
+def github_icon():
+    return send_from_directory('../static', 'GitHub-Mark-32px.png')
+
+
 @app.route('/stop.js')
 def stop_js():
     return send_from_directory('../static', 'stop.js')
