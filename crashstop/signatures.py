@@ -71,6 +71,7 @@ def prepare_for_html(data, product, channel):
             url = socorro.SuperSearch.get_link(params)
             url += '#crash-reports'
             links[(sgn, bid)] = url
+        del params['build_id']
 
     for info in data['signatures'].values():
         utils.set_position(info, dates)
