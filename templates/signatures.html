@@ -37,7 +37,11 @@
              value="Go !"/>
       </form>
     {% if data['signatures'] -%}
-    <p>Take care: signatures with inaccessible bugs are not displayed !</p>
+    <p>Take care: signatures with inaccessible bugs are not displayed !<br>
+      The data are refreshed 4 times by day.<br>
+      You can get the data for a specific bug <a href="./bug.html">here</a>.
+    </p>
+    
     <p>In moccasin are the builds without the patch and in yellowgreen the builds with.<p>
       <ul>
         {% for sgn, i in data['signatures'] -%}

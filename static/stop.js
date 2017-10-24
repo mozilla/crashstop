@@ -13,7 +13,7 @@ function getParams() {
 }
 
 function setHref(channel, product) {
-    location.href = "?channel=" + channel
+    location.href = "signatures.html?channel=" + channel
                   + "&product=" + product;
 }
 
@@ -24,6 +24,6 @@ function update() {
 
 function bug() {
     let bugid = document.getElementById("bugid").value;
-    location.href = "?id=" + bugid;
+    location.href = "bug.html?id=" + bugid;
 }
 

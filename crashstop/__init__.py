@@ -22,7 +22,6 @@ def signatures_html():
     return html.sgns()
 
 
-@app.route('/')
 @app.route('/bug.html')
 def bug_html():
     from crashstop import html
