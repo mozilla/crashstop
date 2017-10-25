@@ -12,6 +12,27 @@ from . import config
 from . import utils
 
 
+def remove_dup_versions(data):
+    res = {}
+    if 'nightly' in data:
+        res['nightly'] = [(b, v) for b, v, _ in data['nightly']]
+
+    for chan in ['beta', 'release']:
+        if chan in data:
+            versions = {}
+            for b, v, c in data[chan]:
+                if v in versions:
+                    if c > versions[v][1]:
+                        versions[v] = (b, c)
+                else:
+                    versions[v] = (b, c)
+            res[chan] = []
+            for v, i in versions.items():
+                bid, _ = i
+                res[chan].append((bid, v))
+    return res
+
+
 def get_buildids(search_date, channels, product):
     data = {chan: list() for chan in channels}
 
@@ -21,14 +42,16 @@ def get_buildids(search_date, channels, product):
         for facets in json['facets']['build_id']:
             count = facets['count']
             if count > threshold:
-                data.append(facets['term'])
+                version = facets['facets']['version'][0]['term']
+                buildid = facets['term']
+                data.append((buildid, version, count))
 
     params = {'product': product,
               'release_channel': '',
               'date': search_date,
-              '_aggs.build_id': 'release_channel',
+              '_aggs.build_id': 'version',
               '_results_number': 0,
-              '_facets_size': 10000}
+              '_facets_size': 1000}
 
     searches = []
     for chan in channels:
@@ -43,13 +66,15 @@ def get_buildids(search_date, channels, product):
     for s in searches:
         s.wait()
 
+    data = remove_dup_versions(data)
+
     res = {}
     for chan, bids in data.items():
         bids = sorted(bids, reverse=True)
         min_v = config.get_versions(product, chan)
         if len(bids) > min_v:
             bids = bids[:min_v]
-        bids = [utils.get_build_date(bid) for bid in bids]
+        bids = [(utils.get_build_date(bid), v) for bid, v in bids]
         res[chan] = bids
 
     return res
@@ -61,7 +86,7 @@ def get_sgns_by_buildid(channels, product='Firefox',
     few_days_ago = today - relativedelta(days=config.get_limit())
     search_date = socorro.SuperSearch.get_search_date(few_days_ago)
     bids = get_buildids(search_date, channels, product)
-    base = {chan: {bid: 0 for bid in bids[chan]} for chan in channels}
+    base = {chan: {bid: 0 for bid, _ in bids[chan]} for chan in channels}
     data = {}
 
     def handler(base, chan, bid, json, data):
@@ -87,7 +112,7 @@ def get_sgns_by_buildid(channels, product='Firefox',
         params = copy.deepcopy(base_params)
         params['release_channel'] = chan
         data[chan] = {}
-        for bid in bids[chan]:
+        for bid, _ in bids[chan]:
             params = copy.deepcopy(params)
             params['build_id'] = utils.get_buildid(bid)
             hdler = functools.partial(handler, base[chan], chan, bid)
@@ -105,7 +130,7 @@ def get_sgns_by_buildid(channels, product='Firefox',
             if max(j.values()) >= threshold:
                 res[chan][sgn] = j
 
-    return res
+    return res, bids
 
 
 def compare_lands(l1, l2):

@@ -11,7 +11,7 @@
     <title>Signatures for {{ product }} &mdash; {{ channel }}</title>
     <script type="text/javascript" src="/stop.js"></script>
   </head>
-  <body onload="javascript:loaded()">
+  <body>
     <header>
       <nav>
         <a class="nav" href="https://github.com/mozilla/crashstop">
@@ -19,7 +19,6 @@
         </a>
       </nav>
     </header>
-    
     <form onsubmit="javascript:update();" action="javascript:void(0);" style="display:inline;">
       Channel:&nbsp;
       <select id="channel">
@@ -58,6 +57,10 @@
             <tr>
               <th class="norm">build-id</th>
               {% for pos, bid in enumerate(data['buildids']) %}<td class="{% if pos <= i['position'] -%}without{% else -%}with{% endif -%}"><a href="{{ data['links'][(sgn, bid)] }}">{{ bid }}</a></td>{% endfor -%}
+            </tr>
+            <tr>
+              <th class="norm">version</th>
+              {% for bid in data['buildids'] %}<td>{{ data['versions'][bid] }}</td>{% endfor -%}
             </tr>
             <tr>
               <th class="norm">crashes</th>

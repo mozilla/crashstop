@@ -28,10 +28,11 @@ def bug():
     bugid = request.args.get('id', '')
     bugid = utils.get_bug_number(bugid)
     data = models.Signatures.get_bybugid(bugid)
-    data, links = signatures.prepare_bug_for_html(data)
+    data, links, versions = signatures.prepare_bug_for_html(data)
 
     return render_template('bug.html',
                            data=data,
                            links=links,
                            bugid=bugid,
+                           versions=versions,
                            enumerate=enumerate)

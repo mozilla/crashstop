@@ -11,7 +11,14 @@
     <title>Signatures for bug {{ bugid }}</title>
     <script type="text/javascript" src="/stop.js"></script>
   </head>
-  <body onload="javascript:loaded()">
+  <body>
+    <header>
+      <nav>
+        <a class="nav" href="https://github.com/mozilla/crashstop">
+          <img src="/GitHub-Mark-32px.png"/>
+        </a>
+      </nav>
+    </header>
     <form onsubmit="javascript:bug();" action="javascript:void(0);" style="display:inline;">
       Bug:&nbsp;
       <input type="text"
@@ -38,6 +45,10 @@
                   <tr>
                     <th class="norm">build-id</th>
                     {% for pos, bid in enumerate(info['buildids']) %}<td class="{% if pos <= info['position'] -%}without{% else -%}with{% endif -%}"><a href="{{ links[(sgn, bid)] }}">{{ bid }}</a></td>{% endfor -%}
+                  </tr>
+                  <tr>
+                    <th class="norm">version</th>
+                    {% for bid in info['buildids'] %}<td>{{ versions[(prod, chan)][bid] }}</td>{% endfor -%}
                   </tr>
                   <tr>
                     <th class="norm">crashes</th>

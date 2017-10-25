@@ -32,11 +32,13 @@ def get(date='today'):
     products = utils.get_products()
     channels = utils.get_channels()
     res_byprod = {}
+    bids_byprod = {}
     for product in products:
-        data = dc.get_sgns_by_buildid(channels,
-                                      product=product,
-                                      date=date)
+        data, bids = dc.get_sgns_by_buildid(channels,
+                                            product=product,
+                                            date=date)
         res_byprod[product] = data
+        bids_byprod[product] = {k: dict(v) for k, v in bids.items()}
         for info in data.values():
             signatures |= set(info.keys())
 
@@ -48,16 +50,16 @@ def get(date='today'):
         for chan, data in i.items():
             res[prod][chan] = get_interesting_sgns(data, patches, chan)
 
-    return res
+    return res, bids_byprod
 
 
 def prepare_for_html(data, product, channel):
     params = utils.get_params_for_link(query={'release_channel': channel,
                                               'product': product})
-
-    dates = data['dates']
-    del data['dates']
+    versions = data['versions']
+    dates = sorted(versions.keys())
     data['buildids'] = buildids = [utils.get_buildid(d) for d in dates]
+    data['versions'] = {utils.get_buildid(d): v for d, v in versions.items()}
     links = {}
 
     for sgn, info in data['signatures'].items():
@@ -88,6 +90,12 @@ def prepare_for_html(data, product, channel):
 def prepare_bug_for_html(data):
     params = utils.get_params_for_link()
     links = {}
+    versions = data['versions']
+    data = data['data']
+
+    for k, v in versions.items():
+        versions[k] = {utils.get_buildid(d): ver for d, ver in v.items()}
+
     for prod, i in data.items():
         params['product'] = prod
         for chan, j in i.items():
@@ -119,4 +127,4 @@ def prepare_bug_for_html(data):
                 if chan in data[prod]:
                     d[chan] = sorted(data[prod][chan].items())
 
-    return results, links
+    return results, links, versions
