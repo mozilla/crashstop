@@ -49,7 +49,7 @@
       You can get the data for a specific bug <a href="./bug.html">here</a>.
     </p>
     
-    <p>In moccasin are the builds without the patch and in yellowgreen the builds with.<p>
+    <p>The builds containing the patch are shown in green.<p>
       <ul>
         {% for sgn, i in data['signatures'] -%}
         <li style="margin:10px 0;"><a href="{{ i['socorro_url'] }}">{{ sgn|e }}</a>:<br>
