@@ -54,7 +54,8 @@ def get(date='today'):
 
 
 def prepare_for_html(data, product, channel):
-    params = utils.get_params_for_link(query={'release_channel': channel,
+    c = ['beta', 'aurora'] if channel == 'beta' else channel
+    params = utils.get_params_for_link(query={'release_channel': c,
                                               'product': product})
     versions = data['versions']
     dates = sorted(versions.keys())
@@ -99,7 +100,8 @@ def prepare_bug_for_html(data):
     for prod, i in data.items():
         params['product'] = prod
         for chan, j in i.items():
-            params['release_channel'] = chan
+            c = ['beta', 'aurora'] if chan == 'beta' else chan
+            params['release_channel'] = c
             for sgn, info in j.items():
                 params['signature'] = utils.get_esearch_sgn(sgn)
                 url = socorro.SuperSearch.get_link(params)

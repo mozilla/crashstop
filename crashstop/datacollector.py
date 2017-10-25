@@ -36,15 +36,16 @@ def remove_dup_versions(data):
 def get_buildids(search_date, channels, product):
     data = {chan: list() for chan in channels}
 
-    def handler(threshold, json, data):
+    def handler(chan, threshold, json, data):
         if json['errors'] or not json['facets']['build_id']:
             return
         for facets in json['facets']['build_id']:
             count = facets['count']
             if count > threshold:
                 version = facets['facets']['version'][0]['term']
-                buildid = facets['term']
-                data.append((buildid, version, count))
+                if chan != 'beta' or not version.endswith('a2'):
+                    buildid = facets['term']
+                    data.append((buildid, version, count))
 
     params = {'product': product,
               'release_channel': '',
@@ -56,9 +57,12 @@ def get_buildids(search_date, channels, product):
     searches = []
     for chan in channels:
         params = copy.deepcopy(params)
-        params['release_channel'] = chan
+        if chan == 'beta':
+            params['release_channel'] = ['beta', 'aurora']
+        else:
+            params['release_channel'] = chan
         threshold = config.get_min_total(product, chan)
-        hdler = functools.partial(handler, threshold)
+        hdler = functools.partial(handler, chan, threshold)
         searches.append(socorro.SuperSearch(params=params,
                                             handler=hdler,
                                             handlerdata=data[chan]))
