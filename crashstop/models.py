@@ -161,7 +161,7 @@ def update(date='today'):
 
 def create(date='today'):
     engine = db.get_engine(app)
-    if not engine.dialect.has_table(engine, 'numbers_info'):
+    if not engine.dialect.has_table(engine, 'buildid'):
         d = lmdutils.get_date(date)
         logger.info('Create data for {}: started.'.format(d))
         db.create_all()
