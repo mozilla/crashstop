@@ -34,9 +34,9 @@ def crashdata_html():
     return html.crashdata()
 
 
-@app.route('/favicon.ico')
+@app.route('/clouseau.ico')
 def favicon():
-    return send_from_directory('../static', 'favicon.ico')
+    return send_from_directory('../static', 'clouseau.ico')
 
 
 @app.route('/GitHub-Mark-32px.png')
