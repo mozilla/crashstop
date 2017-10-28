@@ -42,6 +42,7 @@ def crashdata():
     sgns = request.args.getlist('signatures')
     hgurls = request.args.getlist('hgurls')
     products = request.args.getlist('products')
+    products = utils.get_correct_products(products)
     data = signatures.get_for_urls_sgns(hgurls, sgns, products)
     data, links, versions = signatures.prepare_bug_for_html(data)
 

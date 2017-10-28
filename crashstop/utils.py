@@ -101,19 +101,19 @@ def get_params_for_link(query={}):
 
 
 def get_correct_product(p):
-    if isinstance(p, list) and len(p) >= 1:
-        p = p[0]
     if isinstance(p, six.string_types):
         p = p.lower()
-        prods = {'firefox': 'Firefox',
-                 'fennecandroid': 'FennecAndroid'}
-        return prods.get(p, 'Firefox')
+        for prod in get_products():
+            if p == prod.lower():
+                return prod
     return 'Firefox'
 
 
+def get_correct_products(p):
+    return set(map(get_correct_product, p))
+
+
 def get_correct_channel(c):
-    if isinstance(c, list) and len(c) >= 1:
-        c = c[0]
     if isinstance(c, six.string_types):
         c = c.lower()
         return c if c in get_channels() else 'nightly'
