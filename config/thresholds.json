@@ -24,7 +24,7 @@
     {
         "nightly":
         {
-            "min_total_crashes": 300,
+            "min_total_crashes": 100,
             "min_crashes": 2,
             "versions": 10
         },
