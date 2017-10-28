@@ -53,7 +53,7 @@ def get(date='today'):
     return res, bids_byprod
 
 
-def get_for_urls_sgns(hg_urls, signatures, date='today'):
+def get_for_urls_sgns(hg_urls, signatures, products, date='today'):
     from .models import Buildid
 
     data = {}
@@ -70,7 +70,7 @@ def get_for_urls_sgns(hg_urls, signatures, date='today'):
 
     towait, pushdates = dc.get_pushdates(chan_rev)
 
-    products = utils.get_products()
+    products = utils.get_products() if not products else products
     bids = {}
     res['versions'] = versions = {}
     dates = {}
@@ -82,7 +82,9 @@ def get_for_urls_sgns(hg_urls, signatures, date='today'):
             versions[(product, chan)] = v
             dates[(product, chan)] = d1[chan] = sorted(v.keys())
 
-    sgns_data = dc.get_sgns_data(chan_rev.keys(), bids, signatures, date=date)
+    sgns_data = dc.get_sgns_data(chan_rev.keys(), bids,
+                                 signatures, products,
+                                 date=date)
 
     for tw in towait:
         tw.wait()

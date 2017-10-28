@@ -41,11 +41,13 @@ def bug():
 def crashdata():
     sgns = request.args.getlist('signatures')
     hgurls = request.args.getlist('hgurls')
-    data = signatures.get_for_urls_sgns(hgurls, sgns)
+    products = request.args.getlist('products')
+    data = signatures.get_for_urls_sgns(hgurls, sgns, products)
     data, links, versions = signatures.prepare_bug_for_html(data)
 
     return render_template('crashdata.html',
                            data=data,
                            links=links,
                            versions=versions,
+                           products=utils.get_products(),
                            enumerate=enumerate)

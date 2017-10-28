@@ -9,6 +9,9 @@
     <link rel="stylesheet" href="/stop.css">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <title>Crash data</title>
+    <script type="text/javascript">
+      var products = [{{ ('\"' + '\", \"'.join(products) + '\"')|safe }}];
+    </script>
     <script type="text/javascript" src="/stop.js"></script>
   </head>
   <body>
@@ -25,6 +28,7 @@
       <ul>
         <li>You can see the data for all signatures: <a href="./signatures.html">here</a>.</li>
         <li>You can get the data for a specific bug: <a href="./bug.html">here</a>.</li>
+        <li>If you see something wrong or want a feature, don't hesitate to file an issue on <a href="https://github.com/mozilla/crashstop/issues">Github</a>.</li>
       </ul>
     </div>
     <br>
@@ -35,6 +39,12 @@
       <br><br>
       Mercurial urls of the patches (one url by channel is enough):<br>
       <textarea rows="10" cols="10" id="hgurls"></textarea>
+      <br><br>
+      Product:
+      {% for product in products -%}
+      <input type="checkbox" id="{{ product }}">
+      <label for="{{ product }}">{{ product }}</label> 
+      {% endfor -%}
       <br><br>
       <input type="submit"
              value="Get it !"/>

@@ -153,11 +153,10 @@ def get_sgns_by_buildid(channels, product='Firefox',
     return res, bids
 
 
-def get_sgns_data(channels, bids, signatures, date='today'):
+def get_sgns_data(channels, bids, signatures, products, date='today'):
     today = lmdutils.get_date_ymd(date)
     few_days_ago = today - relativedelta(days=config.get_limit())
     search_date = socorro.SuperSearch.get_search_date(few_days_ago)
-    products = utils.get_products()
 
     nbase = {'raw': 0,
              'installs': 0}

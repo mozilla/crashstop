@@ -48,10 +48,12 @@ div.notice {
     padding: 5px;
 }
 
-textarea { width: 50%;
-           padding: 10px;
-           border: 2px solid #999;
-	       -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
-	       -moz-box-sizing: border-box;    /* Firefox, other Gecko */
-	       box-sizing: border-box;         /* IE 8+ */
+textarea {
+    display: block;
+    width: 50%;
+    padding: 10px;
+    border: 2px solid #999;
+	-webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+	-moz-box-sizing: border-box;    /* Firefox, other Gecko */
+	box-sizing: border-box;         /* IE 8+ */
 }

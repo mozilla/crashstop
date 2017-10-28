@@ -27,6 +27,15 @@ function crashdata() {
             return i + "=" + s
         }).join("&");
     });
+    let prods = products.map(function(i) {
+        return document.getElementById(i).checked ? i : "";
+    }).filter(function(s) {
+        return s;
+    }).map(function(s) {
+        return "products=" + s;
+    }).join("&");
+
     location.href = "crashdata.html?" + data[0]
-                  + "&" + data[1];
+                  + "&" + data[1]
+                  + "&" + prods;
 }
