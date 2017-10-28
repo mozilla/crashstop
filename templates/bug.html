@@ -27,11 +27,10 @@
              value="Get it !"/>
     </form>
     {% if data -%}
-    <p>Take care: signatures with inaccessible bugs are not displayed !<br>
-      You can see all the signatures <a href="./signatures.html">here</a>.
+    <p>You can see all the signatures <a href="./signatures.html">here</a>.
     </p>
     <p>The builds containing the patch are shown in green.</p>
-    <p>Here are the results for <a href="https://bugzil.la/{{ bugid }}">bug {{ bugid }}</a>:</p>
+    <p>Here are the results for bug <a href="https://bugzil.la/{{ bugid }}">{{ bugid }}</a>:</p>
     <ul>
       {% for prod, i in data.items() -%}
       <li>{{ prod }}

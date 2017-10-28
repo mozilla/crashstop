@@ -72,7 +72,8 @@
             </tr>
           </table>
           <ul>
-            <li><a href="https://bugzil.la/{{ i['bugid'] }}">Bug {{ i['bugid'] }}</a></li>
+            <li>See bug <a href="https://bugzil.la/{{ i['bugid'] }}">{{ i['bugid'] }}</a> on Bugzilla</li>
+            <li>See data for bug <a href="./bug.html?id={{ i['bugid'] }}">{{ i['bugid'] }}</a> on crash-stop</li>
           </ul>
         </li>
         {% endfor -%}
