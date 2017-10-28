@@ -8,7 +8,7 @@
     <link rel="shortcut icon" href="/favicon.ico">
     <link rel="stylesheet" href="/stop.css">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <title>Signatures for bug {{ bugid }}</title>
+    <title>Crash data</title>
     <script type="text/javascript" src="/stop.js"></script>
   </head>
   <body>
@@ -19,27 +19,27 @@
         </a>
       </nav>
     </header>
-    <form onsubmit="javascript:bug();" action="javascript:void(0);" style="display:inline;">
-      Bug:&nbsp;
-      <input type="text"
-             id="bugid"/>
+    {% if not data -%}
+    <form onsubmit="javascript:crashdata();" action="javascript:void(0);" style="display:inline;">
+      Signatures (you can copy/paste directly from Bugzilla crash_signature field):<br>
+      <textarea rows="10" cols="10" id="signatures"></textarea>
+      <br><br>
+      Mercurial urls of the patches (one url by channel is enough):<br>
+      <textarea rows="10" cols="10" id="hgurls"></textarea>
+      <br><br>
       <input type="submit"
              value="Get it !"/>
     </form>
-    {% if data -%}
-    <br>
-    <br>
+    {% else -%}
     <div class="notice">
       Few things:
       <ul>
-        <li>You can get crash data for signatures and patches: <a href="./crashdata.html">here</a>.</li>
         <li>You can see the data for all signatures: <a href="./signatures.html">here</a>.</li>
-        <li>The data are refreshed 4 times by day (every 6 hours from 0:00 (UTC)).</li>
+        <li>You can get the data for a specific bug: <a href="./bug.html">here</a>.</li>
         <li>The builds containing the patches are shown in <span class="with">green</span>.</li>
         <li>You can see if a patch had a positive effect on the crash in comparing crash numbers before and after it.</li>
       </ul>
     </div>
-    <p>Here are the results for bug <a href="https://bugzil.la/{{ bugid }}">{{ bugid }}</a>:</p>
     <ul>
       {% for prod, i in data.items() -%}
       <li>{{ prod }}

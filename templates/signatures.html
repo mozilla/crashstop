@@ -42,43 +42,50 @@
       </select>
       <input type="submit"
              value="Go !"/>
-      </form>
+    </form>
+    <br>
+    <br>
     {% if data['signatures'] -%}
-    <p>Take care: signatures with inaccessible bugs are not displayed !<br>
-      The data are refreshed 4 times by day.<br>
-      You can get the data for a specific bug <a href="./bug.html">here</a>.
-    </p>
-    
-    <p>The builds containing the patch are shown in green.<p>
+    <div class="notice">
+      Few things:
       <ul>
-        {% for sgn, i in data['signatures'] -%}
-        <li style="margin:10px 0;"><a href="{{ i['socorro_url'] }}">{{ sgn|e }}</a>:<br>
-          <table border="1">
-            <tr>
-              <th class="norm">build-id</th>
-              {% for pos, bid in enumerate(data['buildids']) %}<td class="{% if pos <= i['position'] -%}without{% else -%}with{% endif -%}"><a href="{{ data['links'][(sgn, bid)] }}">{{ bid }}</a></td>{% endfor -%}
-            </tr>
-            <tr>
-              <th class="norm">version</th>
-              {% for bid in data['buildids'] %}<td>{{ data['versions'][bid] }}</td>{% endfor -%}
-            </tr>
-            <tr class="gray">
-              <th class="norm">installs</th>
-              {% for n in i['installs'] %}<td class="num">{{ n }}</td>{% endfor -%}
-            </tr>
-            <tr>
-              <th class="norm">crashes</th>
-              {% for n in i['raw'] %}<td class="num">{{ n }}</td>{% endfor -%}
-            </tr>
-          </table>
-          <ul>
-            <li>See bug <a href="https://bugzil.la/{{ i['bugid'] }}">{{ i['bugid'] }}</a> on Bugzilla</li>
-            <li>See data for bug <a href="./bug.html?id={{ i['bugid'] }}">{{ i['bugid'] }}</a> on crash-stop</li>
-          </ul>
-        </li>
-        {% endfor -%}
+        <li>Take care: signatures with inaccessible bugs are not displayed !</li>
+        <li>But you can get crash data for signatures and patches: <a href="./crashdata.html">here</a>.</li>
+        <li>You can get the data for a specific bug: <a href="./bug.html">here</a>.</li>
+        <li>The data are refreshed 4 times by day (every 6 hours from 0:00 (UTC)).</li>
+        <li>The builds containing the patches are shown in <span class="with">green</span>.</li>
+        <li>You can see if a patch had a positive effect on the crash in comparing crash numbers before and after it.</li>
       </ul>
-      {% else -%}
+    </div>
+    <ul>
+      {% for sgn, i in data['signatures'] -%}
+      <li style="margin:10px 0;"><a href="{{ i['socorro_url'] }}">{{ sgn|e }}</a>:<br>
+        <table border="1">
+          <tr>
+            <th class="norm">build-id</th>
+            {% for pos, bid in enumerate(data['buildids']) %}<td class="{% if pos <= i['position'] -%}without{% else -%}with{% endif -%}"><a href="{{ data['links'][(sgn, bid)] }}">{{ bid }}</a></td>{% endfor -%}
+          </tr>
+          <tr>
+            <th class="norm">version</th>
+            {% for bid in data['buildids'] %}<td>{{ data['versions'][bid] }}</td>{% endfor -%}
+          </tr>
+          <tr class="gray">
+            <th class="norm">installs</th>
+            {% for n in i['installs'] %}<td class="num">{{ n }}</td>{% endfor -%}
+          </tr>
+          <tr>
+            <th class="norm">crashes</th>
+            {% for n in i['raw'] %}<td class="num">{{ n }}</td>{% endfor -%}
+          </tr>
+        </table>
+        <ul>
+          <li>See bug <a href="https://bugzil.la/{{ i['bugid'] }}">{{ i['bugid'] }}</a> on Bugzilla</li>
+          <li>See data for bug <a href="./bug.html?id={{ i['bugid'] }}">{{ i['bugid'] }}</a> on crash-stop</li>
+        </ul>
+      </li>
+      {% endfor -%}
+    </ul>
+    {% else -%}
     <p>No data for today !</p>
     {% endif -%}
   </body>

@@ -4,10 +4,12 @@
 
 import copy
 from collections import defaultdict
+from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import functools
 from libmozdata import socorro, utils as lmdutils
 from libmozdata.patchanalysis import get_patch_info
+from libmozdata.hgmozilla import Revision
 import time
 from . import config
 from . import utils
@@ -67,7 +69,6 @@ def get_buildids(search_date, channels, product):
         searches.append(socorro.SuperSearch(params=params,
                                             handler=hdler,
                                             handlerdata=data[chan]))
-        time.sleep(10)
 
     for s in searches:
         s.wait()
@@ -136,6 +137,7 @@ def get_sgns_by_buildid(channels, product='Firefox',
                                                 handler=hdler,
                                                 handlerdata=data[chan],
                                                 timeout=120))
+            time.sleep(1)
 
     for s in searches:
         s.wait()
@@ -149,6 +151,76 @@ def get_sgns_by_buildid(channels, product='Firefox',
                 res[chan][sgn] = j
 
     return res, bids
+
+
+def get_sgns_data(channels, bids, signatures, date='today'):
+    today = lmdutils.get_date_ymd(date)
+    few_days_ago = today - relativedelta(days=config.get_limit())
+    search_date = socorro.SuperSearch.get_search_date(few_days_ago)
+    products = utils.get_products()
+
+    nbase = {'raw': 0,
+             'installs': 0}
+    data = {}
+
+    for product in products:
+        data[product] = d1 = {}
+        b1 = bids[product]
+        for chan in channels:
+            d1[chan] = d2 = {}
+            b2 = b1[chan]
+            for signature in signatures:
+                d2[signature] = {bid: nbase.copy() for bid in b2}
+
+    limit = 10000
+    signatures = ['=' + s for s in signatures]
+
+    def handler(bid, json, data):
+        if json['errors'] or not json['facets']['signature']:
+            return
+        for facets in json['facets']['signature']:
+            sgn = facets['term']
+            data[sgn][bid]['raw'] = facets['count']
+            facets = facets['facets']
+            n = len(facets['install_time'])
+            if n == limit:
+                n = facets['cardinality_install_time']['value']
+            data[sgn][bid]['installs'] = n
+
+    base_params = {'product': '',
+                   'release_channel': '',
+                   'build_id': '',
+                   'signature': signatures,
+                   'date': search_date,
+                   '_aggs.signature': ['install_time',
+                                       '_cardinality.install_time'],
+                   '_results_number': 0,
+                   '_facets': 'release_channel',
+                   '_facets_size': limit}
+
+    searches = []
+    for product in products:
+        pparams = copy.deepcopy(base_params)
+        pparams['product'] = product
+        d1 = data[product]
+        b1 = bids[product]
+        for chan in channels:
+            params = copy.deepcopy(pparams)
+            params['release_channel'] = chan
+            d2 = d1[chan]
+            for bid in b1[chan]:
+                params = copy.deepcopy(params)
+                params['build_id'] = utils.get_buildid(bid)
+                hdler = functools.partial(handler, bid)
+                searches.append(socorro.SuperSearch(params=params,
+                                                    handler=hdler,
+                                                    handlerdata=d2,
+                                                    timeout=120))
+
+    for s in searches:
+        s.wait()
+
+    return data
 
 
 def compare_lands(l1, l2):
@@ -182,3 +254,23 @@ def get_patches(signatures):
                     pushdates[sgn] = {'land': land,
                                       'bugid': bug}
     return pushdates
+
+
+def get_pushdates(chan_rev):
+
+    def handler(json, data):
+        pushdate = json['pushdate'][0]
+        pushdate = lmdutils.as_utc(datetime.utcfromtimestamp(pushdate))
+        data.append(pushdate)
+
+    res = []
+    data = {}
+    for chan, revs in chan_rev.items():
+        data[chan] = pd = []
+        for rev in revs:
+            res.append(Revision(channel=chan,
+                                params={'node': rev},
+                                handler=handler,
+                                handlerdata=pd))
+
+    return res, data

@@ -53,7 +53,65 @@ def get(date='today'):
     return res, bids_byprod
 
 
-def prepare_for_html(data, product, channel):
+def get_for_urls_sgns(hg_urls, signatures, date='today'):
+    from .models import Buildid
+
+    data = {}
+    res = {'data': data,
+           'versions': {}}
+
+    signatures = utils.get_signatures(signatures)
+    if not signatures:
+        return res
+
+    chan_rev = utils.analyze_hg_urls(hg_urls)
+    if not chan_rev:
+        return res
+
+    towait, pushdates = dc.get_pushdates(chan_rev)
+
+    products = utils.get_products()
+    bids = {}
+    res['versions'] = versions = {}
+    dates = {}
+    for product in products:
+        bids[product] = d1 = {}
+        for chan in chan_rev.keys():
+            pc = Buildid.get_pc(product, chan)
+            v = Buildid.get_versions(pc)
+            versions[(product, chan)] = v
+            dates[(product, chan)] = d1[chan] = sorted(v.keys())
+
+    sgns_data = dc.get_sgns_data(chan_rev.keys(), bids, signatures, date=date)
+
+    for tw in towait:
+        tw.wait()
+
+    for chan, pds in pushdates.items():
+        pushdates[chan] = max(pds)
+
+    for product, i in sgns_data.items():
+        data[product] = d1 = {}
+        for chan, j in i.items():
+            d1[chan] = d2 = {}
+            pushdate = pushdates[chan]
+            ds = dates[(product, chan)]
+            for sgn, numbers in j.items():
+                raw = [0] * len(ds)
+                installs = [0] * len(ds)
+                for k, d in enumerate(ds):
+                    n = numbers[d]
+                    raw[k] = n['raw']
+                    installs[k] = n['installs']
+                d2[sgn] = {'pushdate': pushdate,
+                           'dates': ds,
+                           'raw': raw,
+                           'installs': installs}
+
+    return res
+
+
+def prepare_signatures_for_html(data, product, channel):
     c = ['beta', 'aurora'] if channel == 'beta' else channel
     params = utils.get_params_for_link(query={'release_channel': c,
                                               'product': product})

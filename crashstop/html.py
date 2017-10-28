@@ -13,7 +13,7 @@ def sgns():
     channel = utils.get_correct_channel(channel)
 
     data = models.Signatures.get_bypc(product, channel)
-    signatures.prepare_for_html(data, product, channel)
+    signatures.prepare_signatures_for_html(data, product, channel)
 
     return render_template('signatures.html',
                            product=product,
@@ -34,5 +34,18 @@ def bug():
                            data=data,
                            links=links,
                            bugid=bugid,
+                           versions=versions,
+                           enumerate=enumerate)
+
+
+def crashdata():
+    sgns = request.args.getlist('signatures')
+    hgurls = request.args.getlist('hgurls')
+    data = signatures.get_for_urls_sgns(hgurls, sgns)
+    data, links, versions = signatures.prepare_bug_for_html(data)
+
+    return render_template('crashdata.html',
+                           data=data,
+                           links=links,
                            versions=versions,
                            enumerate=enumerate)

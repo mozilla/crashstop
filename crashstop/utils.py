@@ -3,12 +3,18 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from bisect import bisect_left
+from collections import defaultdict
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from libmozdata import utils
 import pytz
+import re
 import six
 from . import config
+
+
+HG_PAT = re.compile(r'^http[s]?://hg\.mozilla\.org/(?:releases/)?mozilla-([^/]*)/rev/([0-9a-f]+)$') # NOQA
+
 
 try:
     UNICODE_EXISTS = bool(type(unicode))
@@ -28,6 +34,45 @@ def get_products():
 
 def get_channels():
     return config.get_channels()
+
+
+def analyze_hg_url(url):
+    channel = rev = ''
+    m = HG_PAT.match(url)
+    if m:
+        channel = m.group(1)
+        rev = m.group(2)
+        if channel == 'central':
+            channel = 'nightly'
+        elif channel not in get_channels():
+            channel = rev = ''
+
+    return channel, rev
+
+
+def analyze_hg_urls(urls):
+    res = defaultdict(lambda: list())
+    for url in urls:
+        url = url.strip()
+        chan, rev = analyze_hg_url(url)
+        if chan:
+            res[chan].append(rev)
+    return res
+
+
+def get_signatures(signatures):
+    res = set()
+    for s in signatures:
+        if '[@' in s:
+            sgns = map(lambda x: x.strip(), s.split('[@'))
+            sgns = filter(None, sgns)
+            sgns = map(lambda x: x[:-1].strip(), sgns)
+        else:
+            sgns = map(lambda x: x.strip(), s.split('\n'))
+            sgns = filter(None, sgns)
+        res |= set(sgns)
+
+    return res
 
 
 def get_params_for_link(query={}):

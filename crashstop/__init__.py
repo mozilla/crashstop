@@ -28,6 +28,12 @@ def bug_html():
     return html.bug()
 
 
+@app.route('/crashdata.html')
+def crashdata_html():
+    from crashstop import html
+    return html.crashdata()
+
+
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory('../static', 'favicon.ico')

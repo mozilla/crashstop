@@ -17,3 +17,16 @@ function bug() {
     location.href = "bug.html?id=" + bugid;
 }
 
+function crashdata() {
+    let data = ["signatures", "hgurls"].map(function(i) {
+        return document.getElementById(i).value.split("\n").map(function(s) {
+            return s.trim()
+        }).filter(function(s) {
+            return s;
+        }).map(function(s) {
+            return i + "=" + s
+        }).join("&");
+    });
+    location.href = "crashdata.html?" + data[0]
+                  + "&" + data[1];
+}
