@@ -8,6 +8,7 @@ from dateutil.relativedelta import relativedelta
 import functools
 from libmozdata import socorro, utils as lmdutils
 from libmozdata.patchanalysis import get_patch_info
+import time
 from . import config
 from . import utils
 
@@ -66,6 +67,7 @@ def get_buildids(search_date, channels, product):
         searches.append(socorro.SuperSearch(params=params,
                                             handler=hdler,
                                             handlerdata=data[chan]))
+        time.sleep(10)
 
     for s in searches:
         s.wait()
@@ -90,8 +92,11 @@ def get_sgns_by_buildid(channels, product='Firefox',
     few_days_ago = today - relativedelta(days=config.get_limit())
     search_date = socorro.SuperSearch.get_search_date(few_days_ago)
     bids = get_buildids(search_date, channels, product)
-    base = {chan: {bid: 0 for bid, _ in bids[chan]} for chan in channels}
+    nbase = {'raw': 0,
+             'installs': 0}
+    base = {c: {b: nbase.copy() for b, _ in bids[c]} for c in channels}
     data = {}
+    limit = 10000
 
     def handler(base, chan, bid, json, data):
         if json['errors'] or not json['facets']['signature']:
@@ -100,15 +105,22 @@ def get_sgns_by_buildid(channels, product='Firefox',
             sgn = facets['term']
             if sgn not in data:
                 data[sgn] = copy.deepcopy(base)
-            data[sgn][bid] = facets['count']
+            data[sgn][bid]['raw'] = facets['count']
+            facets = facets['facets']
+            n = len(facets['install_time'])
+            if n == limit:
+                n = facets['cardinality_install_time']['value']
+            data[sgn][bid]['installs'] = n
 
     base_params = {'product': product,
                    'release_channel': '',
                    'build_id': '',
                    'date': search_date,
-                   '_aggs.signature': 'release_channel',
+                   '_aggs.signature': ['install_time',
+                                       '_cardinality.install_time'],
                    '_results_number': 0,
-                   '_facets_size': 10000}
+                   '_facets': 'release_channel',
+                   '_facets_size': limit}
     base_params.update(query)
 
     searches = []
@@ -122,7 +134,8 @@ def get_sgns_by_buildid(channels, product='Firefox',
             hdler = functools.partial(handler, base[chan], chan, bid)
             searches.append(socorro.SuperSearch(params=params,
                                                 handler=hdler,
-                                                handlerdata=data[chan]))
+                                                handlerdata=data[chan],
+                                                timeout=120))
 
     for s in searches:
         s.wait()
@@ -131,7 +144,8 @@ def get_sgns_by_buildid(channels, product='Firefox',
     for chan, i in data.items():
         threshold = config.get_min(product, chan)
         for sgn, j in i.items():
-            if max(j.values()) >= threshold:
+            numbers = [v['raw'] for v in j.values()]
+            if max(numbers) >= threshold:
                 res[chan][sgn] = j
 
     return res, bids

@@ -50,9 +50,13 @@
                     <th class="norm">version</th>
                     {% for bid in info['buildids'] %}<td>{{ versions[(prod, chan)][bid] }}</td>{% endfor -%}
                   </tr>
+                  <tr class="gray">
+                    <th class="norm">installs</th>
+                    {% for n in info['installs'] %}<td class="num">{{ n }}</td>{% endfor -%}
+                  </tr>
                   <tr>
                     <th class="norm">crashes</th>
-                    {% for n in info['numbers'] %}<td class="num">{{ n }}</td>{% endfor -%}
+                    {% for n in info['raw'] %}<td class="num">{{ n }}</td>{% endfor -%}
                   </tr>
                 </table>
               </li>

@@ -21,6 +21,10 @@ th.norm {
     text-align:left;
 }
 
+tr.gray {
+    background-color:lightgray;
+}
+
 table {
     border:1px solid black;
     border-collapse:collapse;

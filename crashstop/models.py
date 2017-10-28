@@ -68,14 +68,16 @@ class Signatures(db.Model):
     pc = db.Column(db.String(3))
     signature = db.Column(db.String(512))
     bugid = db.Column(db.Integer, default=0)
-    numbers = db.Column(pg.ARRAY(db.Integer))
+    raw = db.Column(pg.ARRAY(db.Integer))
+    installs = db.Column(pg.ARRAY(db.Integer))
     pushdate = db.Column(db.DateTime(timezone=True))
 
-    def __init__(self, pc, signature, bugid, numbers, pushdate):
+    def __init__(self, pc, signature, bugid, raw, installs, pushdate):
         self.pc = pc
         self.signature = signature
         self.bugid = bugid
-        self.numbers = numbers
+        self.raw = raw
+        self.installs = installs
         self.pushdate = pushdate
 
     @staticmethod
@@ -93,8 +95,9 @@ class Signatures(db.Model):
                     pushdate = info['pushdate']
                     if not dates:
                         dates = sorted(numbers.keys())
-                    numbers = [numbers[d] for d in dates]
-                    s = Signatures(pc, sgn, bugid, numbers, pushdate)
+                    raw = [numbers[d]['raw'] for d in dates]
+                    installs = [numbers[d]['installs'] for d in dates]
+                    s = Signatures(pc, sgn, bugid, raw, installs, pushdate)
                     db.session.add(s)
 
         db.session.commit()
@@ -112,14 +115,16 @@ class Signatures(db.Model):
         for sgn in sgns:
             d[sgn.signature] = {'bugid': sgn.bugid,
                                 'pushdate': sgn.pushdate.astimezone(pytz.utc),
-                                'numbers': sgn.numbers}
+                                'raw': sgn.raw,
+                                'installs': sgn.installs}
 
         return res
 
     @staticmethod
     def get_bybugid(bugid):
         q = db.session.query(Signatures.pc, Signatures.signature,
-                             Signatures.numbers, Signatures.pushdate)
+                             Signatures.raw, Signatures.installs,
+                             Signatures.pushdate)
         sgns = q.filter_by(bugid=bugid)
 
         data = {}
@@ -147,7 +152,8 @@ class Signatures(db.Model):
                 data[prod][chan] = {}
             data[prod][chan][sgn.signature] = {'pushdate': pushdate,
                                                'dates': dates,
-                                               'numbers': sgn.numbers}
+                                               'raw': sgn.raw,
+                                               'installs': sgn.installs}
         return res
 
 
