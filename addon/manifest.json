@@ -1,0 +1,22 @@
+{
+    "name": "Bugzilla Crash Stop",
+    "description": "This add-on inserts a link under crash signatures to check if the patches had an effect on crash numbers.",
+    "version": "0.1.0",
+    "manifest_version": 2,
+    "applications": {
+        "gecko": {
+            "id": "bugzilla-crash-stop@calixteman"
+        }
+    },
+    "icons": {
+        "96": "icons/clouseau.png"
+    },
+    "homepage_url": "https://github.com/mozilla/crashstop",
+    "content_scripts": [
+        {
+            "matches": ["https://bugzilla.mozilla.org/show_bug.cgi?id=*"],
+            "js": ["content.js"],
+            "run_at": "document_end"
+        }
+    ]
+}
