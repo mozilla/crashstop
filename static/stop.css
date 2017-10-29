@@ -35,6 +35,10 @@ span.with {
     background-color:yellowgreen;
 }
 
+span.without {
+    background-color:moccasin;
+}
+
 nav {
     float:right;
 }
@@ -42,7 +46,7 @@ nav {
 div.notice {
     border-radius: 10px;
     display: inline-block;
-    background-color: #ecd9ab;
+    background-color: PaleTurquoise;
     background-position: left top;
     background-repeat: repeat;
     padding: 5px;
