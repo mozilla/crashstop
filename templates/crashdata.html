@@ -42,7 +42,7 @@
       <br><br>
       Product:
       {% for product in products -%}
-      <input type="checkbox" id="{{ product }}">
+      <input type="checkbox" id="{{ product }}" {% if product == 'Firefox' -%}checked{% endif %}>
       <label for="{{ product }}">{{ product }}</label> 
       {% endfor -%}
       <br><br>

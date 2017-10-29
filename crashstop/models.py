@@ -5,7 +5,7 @@
 from libmozdata import utils as lmdutils
 import sqlalchemy.dialects.postgresql as pg
 import pytz
-from . import signatures
+from . import signatures, utils
 from . import db, app
 from .logger import logger
 
@@ -17,12 +17,8 @@ class Buildid(db.Model):
     buildid = db.Column(db.DateTime(timezone=True), primary_key=True)
     version = db.Column(db.String(12))
 
-    PRODS = {'Fi': 'Firefox',
-             'Fe': 'FennecAndroid'}
-
-    CHANS = {'N': 'nightly',
-             'B': 'beta',
-             'R': 'release'}
+    PRODS = {p[:2]: p for p in utils.get_products()}
+    CHANS = {c[:1].upper(): c for c in utils.get_channels()}
 
     def __init__(self, pc, buildid, version):
         self.pc = pc

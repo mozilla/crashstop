@@ -44,7 +44,7 @@ def get_buildids(search_date, channels, product):
             return
         for facets in json['facets']['build_id']:
             count = facets['count']
-            if count > threshold:
+            if count >= threshold:
                 version = facets['facets']['version'][0]['term']
                 if chan != 'beta' or not version.endswith('a2'):
                     buildid = facets['term']
@@ -60,7 +60,7 @@ def get_buildids(search_date, channels, product):
     searches = []
     for chan in channels:
         params = copy.deepcopy(params)
-        if chan == 'beta':
+        if chan == 'beta' and product == 'Firefox':
             params['release_channel'] = ['beta', 'aurora']
         else:
             params['release_channel'] = chan

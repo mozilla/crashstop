@@ -114,7 +114,10 @@ def get_for_urls_sgns(hg_urls, signatures, products, date='today'):
 
 
 def prepare_signatures_for_html(data, product, channel):
-    c = ['beta', 'aurora'] if channel == 'beta' else channel
+    if channel == 'beta' and product == 'Firefox':
+        c = ['beta', 'aurora']
+    else:
+        c = channel
     params = utils.get_params_for_link(query={'release_channel': c,
                                               'product': product})
     versions = data['versions']
