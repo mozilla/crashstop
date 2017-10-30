@@ -171,7 +171,7 @@ def get_sgns_data(channels, bids, signatures, products, date='today'):
             for signature in signatures:
                 d2[signature] = {bid: nbase.copy() for bid in b2}
 
-    limit = 10000
+    limit = config.get_limit_facets()
     signatures = ['=' + s for s in signatures]
 
     def handler(bid, json, data):
