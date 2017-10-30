@@ -181,7 +181,8 @@ def prepare_bug_for_html(data):
                     url = socorro.SuperSearch.get_link(params)
                     url += '#crash-reports'
                     links[(sgn, bid)] = url
-                del params['build_id']
+                if 'build_id' in params:
+                    del params['build_id']
 
     # order the data
     results = OrderedDict()
