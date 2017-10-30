@@ -97,7 +97,7 @@ def get_sgns_by_buildid(channels, product='Firefox',
              'installs': 0}
     base = {c: {b: nbase.copy() for b, _ in bids[c]} for c in channels}
     data = {}
-    limit = 10000
+    limit = config.get_limit_facets()
 
     def handler(base, chan, bid, json, data):
         if json['errors'] or not json['facets']['signature']:

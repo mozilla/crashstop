@@ -47,3 +47,7 @@ def get_products():
 
 def get_limit():
     return _get_global()['days_limit']
+
+
+def get_limit_facets():
+    return _get_global()['facets_limit']
