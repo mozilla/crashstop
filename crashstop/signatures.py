@@ -6,6 +6,7 @@ from collections import OrderedDict
 from libmozdata import socorro
 from . import datacollector as dc
 from . import utils, tools
+from .const import RAW, INSTALLS
 
 
 def get_min_max_dates(numbers):
@@ -110,8 +111,8 @@ def get_for_urls_sgns(hg_urls, signatures, products, date='today'):
                 installs = [0] * len(ds)
                 for k, d in enumerate(ds):
                     n = numbers[d]
-                    raw[k] = n['raw']
-                    installs[k] = n['installs']
+                    raw[k] = n[RAW]
+                    installs[k] = n[INSTALLS]
                 d2[sgn] = {'pushdate': pushdate,
                            'dates': ds,
                            'raw': raw,

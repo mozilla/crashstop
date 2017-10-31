@@ -150,10 +150,6 @@ def get_sgns_by_buildid(channels, product='Firefox',
                 res[chan][sgn] = j
 
     ratios = tools.get_global_ratios(res)
-    """ratios = {}
-    for chan, i in res.items():
-        print(chan)
-        ratios[chan] = tools.analyze1(i)"""
 
     return res, bids, ratios
 
