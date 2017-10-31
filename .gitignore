@@ -3,3 +3,4 @@
 *.pyo
 mozdata.ini
 bugzilla-crash-stop.zip
+.*

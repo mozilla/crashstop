@@ -5,7 +5,7 @@
 from collections import OrderedDict
 from libmozdata import socorro
 from . import datacollector as dc
-from . import utils
+from . import utils, tools
 
 
 def get_min_max_dates(numbers):
@@ -13,16 +13,19 @@ def get_min_max_dates(numbers):
     return dates[0], dates[-1]
 
 
-def get_interesting_sgns(data, patches, chan):
+def get_interesting_sgns(data, patches, prod, chan, ratio):
     res = {}
     for sgn, numbers in data.items():
         md, Md = get_min_max_dates(numbers)
         if sgn in patches and chan in patches[sgn]['land']:
             pushdate = patches[sgn]['land'][chan]
             if md <= pushdate <= Md:
+                success = tools.check_patch(numbers, pushdate,
+                                            ratio, prod, chan)
                 res[sgn] = {'numbers': numbers,
                             'pushdate': pushdate,
-                            'bugid': int(patches[sgn]['bugid'])}
+                            'bugid': int(patches[sgn]['bugid']),
+                            'success': success}
     return res
 
 
@@ -33,12 +36,14 @@ def get(date='today'):
     channels = utils.get_channels()
     res_byprod = {}
     bids_byprod = {}
+    ratios_byprod = {}
     for product in products:
-        data, bids = dc.get_sgns_by_buildid(channels,
-                                            product=product,
-                                            date=date)
+        data, bids, ratios = dc.get_sgns_by_buildid(channels,
+                                                    product=product,
+                                                    date=date)
         res_byprod[product] = data
         bids_byprod[product] = {k: dict(v) for k, v in bids.items()}
+        ratios_byprod[product] = ratios
         for info in data.values():
             signatures |= set(info.keys())
 
@@ -48,9 +53,11 @@ def get(date='today'):
     res = {prod: {chan: {} for chan in channels} for prod in products}
     for prod, i in res_byprod.items():
         for chan, data in i.items():
-            res[prod][chan] = get_interesting_sgns(data, patches, chan)
+            ratio = ratios_byprod[prod][chan]
+            res[prod][chan] = get_interesting_sgns(data, patches,
+                                                   prod, chan, ratio)
 
-    return res, bids_byprod
+    return res, bids_byprod, ratios_byprod
 
 
 def get_for_urls_sgns(hg_urls, signatures, products, date='today'):

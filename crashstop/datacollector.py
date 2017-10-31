@@ -11,8 +11,8 @@ from libmozdata import socorro, utils as lmdutils
 from libmozdata.patchanalysis import get_patch_info
 from libmozdata.hgmozilla import Revision
 import time
-from . import config
-from . import utils
+from . import config, utils, tools
+from .const import RAW, INSTALLS
 
 
 def remove_dup_versions(data):
@@ -93,9 +93,8 @@ def get_sgns_by_buildid(channels, product='Firefox',
     few_days_ago = today - relativedelta(days=config.get_limit())
     search_date = socorro.SuperSearch.get_search_date(few_days_ago)
     bids = get_buildids(search_date, channels, product)
-    nbase = {'raw': 0,
-             'installs': 0}
-    base = {c: {b: nbase.copy() for b, _ in bids[c]} for c in channels}
+    nbase = [0, 0]
+    base = {c: {b: copy.copy(nbase) for b, _ in bids[c]} for c in channels}
     data = {}
     limit = config.get_limit_facets()
 
@@ -106,12 +105,12 @@ def get_sgns_by_buildid(channels, product='Firefox',
             sgn = facets['term']
             if sgn not in data:
                 data[sgn] = copy.deepcopy(base)
-            data[sgn][bid]['raw'] = facets['count']
+            data[sgn][bid][RAW] = facets['count']
             facets = facets['facets']
             n = len(facets['install_time'])
             if n == limit:
                 n = facets['cardinality_install_time']['value']
-            data[sgn][bid]['installs'] = n
+            data[sgn][bid][INSTALLS] = n
 
     base_params = {'product': product,
                    'release_channel': '',
@@ -146,11 +145,17 @@ def get_sgns_by_buildid(channels, product='Firefox',
     for chan, i in data.items():
         threshold = config.get_min(product, chan)
         for sgn, j in i.items():
-            numbers = [v['raw'] for v in j.values()]
+            numbers = [v[RAW] for v in j.values()]
             if max(numbers) >= threshold:
                 res[chan][sgn] = j
 
-    return res, bids
+    ratios = tools.get_global_ratios(res)
+    """ratios = {}
+    for chan, i in res.items():
+        print(chan)
+        ratios[chan] = tools.analyze1(i)"""
+
+    return res, bids, ratios
 
 
 def get_sgns_data(channels, bids, signatures, products, date='today'):
@@ -158,8 +163,7 @@ def get_sgns_data(channels, bids, signatures, products, date='today'):
     few_days_ago = today - relativedelta(days=config.get_limit())
     search_date = socorro.SuperSearch.get_search_date(few_days_ago)
 
-    nbase = {'raw': 0,
-             'installs': 0}
+    nbase = [0, 0]
     data = {}
 
     for product in products:
@@ -179,12 +183,12 @@ def get_sgns_data(channels, bids, signatures, products, date='today'):
             return
         for facets in json['facets']['signature']:
             sgn = facets['term']
-            data[sgn][bid]['raw'] = facets['count']
+            data[sgn][bid][RAW] = facets['count']
             facets = facets['facets']
             n = len(facets['install_time'])
             if n == limit:
                 n = facets['cardinality_install_time']['value']
-            data[sgn][bid]['installs'] = n
+            data[sgn][bid][INSTALLS] = n
 
     base_params = {'product': '',
                    'release_channel': '',

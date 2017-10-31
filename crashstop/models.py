@@ -8,6 +8,7 @@ import pytz
 from . import signatures, utils
 from . import db, app
 from .logger import logger
+from .const import RAW, INSTALLS
 
 
 class Buildid(db.Model):
@@ -57,6 +58,36 @@ class Buildid(db.Model):
         return Buildid.PRODS[p], Buildid.CHANS[c]
 
 
+class GlobalRatio(db.Model):
+    __tablename__ = 'globalratio'
+
+    pc = db.Column(db.String(3), primary_key=True)
+    ratio = db.Column(db.Float)
+
+    def __init__(self, pc, ratio):
+        self.pc = pc
+        self.ratio = ratio
+
+    @staticmethod
+    def put_data(data, commit=True):
+        db.session.query(GlobalRatio).delete()
+        for prod, i in data.items():
+            for chan, ratio in i.items():
+                pc = Buildid.get_pc(prod, chan)
+                db.session.add(GlobalRatio(pc, ratio))
+        if commit:
+            db.session.commit()
+
+    @staticmethod
+    def get_ratios(pcs):
+        pcs = [Buildid.get_pc(p, c) for p, c in pcs]
+        grs = db.session.query(GlobalRatio).filter_by(GlobalRatio.pc.in_(pcs))
+        res = {}
+        for gr in grs:
+            res[Buildid.get_prod_chan(gr.pc)] = gr.ratio
+        return res
+
+
 class Signatures(db.Model):
     __tablename__ = 'signatures'
 
@@ -67,17 +98,20 @@ class Signatures(db.Model):
     raw = db.Column(pg.ARRAY(db.Integer))
     installs = db.Column(pg.ARRAY(db.Integer))
     pushdate = db.Column(db.DateTime(timezone=True))
+    success = db.Column(db.Boolean)
 
-    def __init__(self, pc, signature, bugid, raw, installs, pushdate):
+    def __init__(self, pc, signature, bugid, raw, installs, pushdate, success):
         self.pc = pc
         self.signature = signature
         self.bugid = bugid
         self.raw = raw
         self.installs = installs
         self.pushdate = pushdate
+        self.success = success
 
     @staticmethod
-    def put_data(data, bids):
+    def put_data(data, bids, ratios):
+        GlobalRatio.put_data(ratios, commit=False)
         Buildid.add_buildids(bids, commit=False)
         db.session.query(Signatures).delete()
 
@@ -89,11 +123,13 @@ class Signatures(db.Model):
                     bugid = info['bugid']
                     numbers = info['numbers']
                     pushdate = info['pushdate']
+                    success = info['success']
                     if not dates:
                         dates = sorted(numbers.keys())
-                    raw = [numbers[d]['raw'] for d in dates]
-                    installs = [numbers[d]['installs'] for d in dates]
-                    s = Signatures(pc, sgn, bugid, raw, installs, pushdate)
+                    raw = [numbers[d][RAW] for d in dates]
+                    installs = [numbers[d][INSTALLS] for d in dates]
+                    s = Signatures(pc, sgn, bugid, raw,
+                                   installs, pushdate, success)
                     db.session.add(s)
 
         db.session.commit()
@@ -112,7 +148,8 @@ class Signatures(db.Model):
             d[sgn.signature] = {'bugid': sgn.bugid,
                                 'pushdate': sgn.pushdate.astimezone(pytz.utc),
                                 'raw': sgn.raw,
-                                'installs': sgn.installs}
+                                'installs': sgn.installs,
+                                'success': sgn.success}
 
         return res
 
@@ -128,6 +165,7 @@ class Signatures(db.Model):
         res = {'data': data,
                'versions': versions}
         cache = {}
+
         for sgn in sgns:
             prod, chan = Buildid.get_prod_chan(sgn.pc)
             if prod not in res:
@@ -149,15 +187,16 @@ class Signatures(db.Model):
             data[prod][chan][sgn.signature] = {'pushdate': pushdate,
                                                'dates': dates,
                                                'raw': sgn.raw,
-                                               'installs': sgn.installs}
+                                               'installs': sgn.installs,
+                                               'success': sgn.success}
         return res
 
 
 def update(date='today'):
     d = lmdutils.get_date(date)
     logger.info('Update data for {}: started.'.format(d))
-    data, bids = signatures.get(date=date)
-    Signatures.put_data(data, bids)
+    data, bids, ratios = signatures.get(date=date)
+    Signatures.put_data(data, bids, ratios)
     logger.info('Update data for {}: finished.'.format(d))
 
 
@@ -167,6 +206,6 @@ def create(date='today'):
         d = lmdutils.get_date(date)
         logger.info('Create data for {}: started.'.format(d))
         db.create_all()
-        data, bids = signatures.get(date=date)
-        Signatures.put_data(data, bids)
+        data, bids, ratios = signatures.get(date=date)
+        Signatures.put_data(data, bids, ratios)
         logger.info('Create data for {}: finished.'.format(d))
