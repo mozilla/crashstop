@@ -70,7 +70,7 @@
           <li>{{ chan }}
             <ul>
               {% for sgn, info in j -%}
-              <li style="margin:10px 0;"><a href="{{ info['socorro_url'] }}">{{ sgn|e }}</a>{% if info['position'] == -2 -%} (no patch information){% endif -%}:<br>
+              <li style="margin:10px 0;"><a href="{{ info['socorro_url'] }}">{{ sgn|e }}</a>{% if info['position'] == -2 -%}&nbsp;(no patch information){% endif -%}:<br>
                 <table border="1">
                   <tr>
                     <th class="norm">build-id</th>
