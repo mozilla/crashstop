@@ -14,8 +14,6 @@ def sgns():
     filt = request.args.get('filter', 'all')
     filt = utils.get_correct_filter(filt)
 
-    print(filt)
-
     data = models.Signatures.get_bypc(product, channel, filt)
     signatures.prepare_signatures_for_html(data, product, channel)
 
