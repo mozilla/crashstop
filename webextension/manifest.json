@@ -1,7 +1,7 @@
 {
     "name": "Bugzilla Crash Stop",
-    "description": "This add-on inserts a link under crash signatures to check if the patches had an effect on crash numbers.",
-    "version": "0.1.0",
+    "description": "This webextension inserts a link under crash signatures to check if the patches had an effect on crash numbers.",
+    "version": "0.1.1",
     "manifest_version": 2,
     "applications": {
         "gecko": {

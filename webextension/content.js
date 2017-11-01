@@ -11,9 +11,14 @@ if (container) {
         let hgurlPattern = new RegExp("^http[s]?://hg\.mozilla\.org/(?:releases/)?mozilla-([^/]*)/rev/[0-9a-f]+$");
         let repos = new Set(["central", "beta", "release"]);
         let hgurls = [];
+        let isFirst = false;
         document.querySelectorAll(".comment-text > a").forEach(a => {
-            let link = a.href;
-            if (a.previousSibling == null) {
+            let prev = a.previousSibling;
+            if (prev == null || (prev.previousSibling == null && !prev.textContent.trim())) {
+                isFirst = true;
+            }
+            if (isFirst) {
+                let link = a.href;
                 let m = link.match(hgurlPattern);
                 if (m != null && repos.has(m[1])) {
                     hgurls.push("hgurls=" + link);
