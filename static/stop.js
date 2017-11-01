@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 function getParams() {
-    let params = ["channel", "product"].map(function(i) {
+    let params = ["channel", "product", "filter"].map(function(i) {
         let e = document.getElementById(i);
         return e.options[e.selectedIndex].value;
     });
@@ -13,7 +13,8 @@ function getParams() {
 function update() {
     let params = getParams();
     location.href = "signatures.html?channel=" + params[0]
-                  + "&product=" + params[1];
+                  + "&product=" + params[1]
+                  + "&filter=" + params[2];
 }
 
 function bug() {

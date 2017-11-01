@@ -11,8 +11,12 @@ def sgns():
     product = utils.get_correct_product(product)
     channel = request.args.get('channel', '')
     channel = utils.get_correct_channel(channel)
+    filt = request.args.get('filter', 'all')
+    filt = utils.get_correct_filter(filt)
 
-    data = models.Signatures.get_bypc(product, channel)
+    print(filt)
+
+    data = models.Signatures.get_bypc(product, channel, filt)
     signatures.prepare_signatures_for_html(data, product, channel)
 
     return render_template('signatures.html',
@@ -21,6 +25,7 @@ def sgns():
                            channel=channel,
                            channels=utils.get_channels(),
                            data=data,
+                           filt=filt,
                            enumerate=enumerate)
 
 

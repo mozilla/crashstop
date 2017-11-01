@@ -141,6 +141,13 @@ def get_correct_sgn(sgn):
     return ''
 
 
+def get_correct_filter(f):
+    f = f.lower()
+    if f in {'all', 'successful', 'unsuccessful'}:
+        return f
+    return 'all'
+
+
 def get_esearch_sgn(sgn):
     if sgn.startswith('\"'):
         return '@' + sgn

@@ -132,9 +132,15 @@ class Signatures(db.Model):
         db.session.commit()
 
     @staticmethod
-    def get_bypc(product, channel):
+    def get_bypc(product, channel, filt):
         pc = Buildid.get_pc(product, channel)
-        sgns = db.session.query(Signatures).filter_by(pc=pc)
+        query = db.session.query(Signatures)
+        if filt == 'all':
+            sgns = query.filter_by(pc=pc)
+        else:
+            sgns = query.filter_by(pc=pc,
+                                   success=filt == 'successful')
+
         versions = Buildid.get_versions(pc)
 
         d = {}
