@@ -4,6 +4,7 @@
 
 from bisect import bisect_left
 from collections import defaultdict
+import copy
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from libmozdata import utils
@@ -11,6 +12,7 @@ import pytz
 import re
 import six
 from . import config
+from .const import RAW, INSTALLS
 
 
 HG_PAT = re.compile(r'^http[s]?://hg\.mozilla\.org/(?:releases/)?mozilla-([^/]*)/rev/([0-9a-f]+)$') # NOQA
@@ -34,6 +36,17 @@ def get_products():
 
 def get_channels():
     return config.get_channels()
+
+
+def get_raw_installs(numbers):
+    N = len(numbers)
+    raw = [0] * N
+    installs = copy.copy(raw)
+    for i in range(N):
+        n = numbers[i]
+        raw[i] = n[RAW]
+        installs[i] = n[INSTALLS]
+    return raw, installs
 
 
 def analyze_hg_url(url):
@@ -166,3 +179,38 @@ def set_position(info, dates):
     pushdate = info['pushdate']
     pos = bisect_left(dates, pushdate)
     info['position'] = pos - 1
+
+
+def get_dates(bids):
+    start_date = utils.get_date_ymd('tomorrow')
+    end_date = utils.get_guttenberg_death()
+    date_ranges = {}
+
+    for i in bids.values():
+        for chan, j in i.items():
+            md, Md = j[0][0], j[-1][0]
+            if md < start_date:
+                start_date = md
+            if Md > end_date:
+                end_date = Md
+            if chan not in date_ranges:
+                date_ranges[chan] = [md, Md]
+            else:
+                r = date_ranges[chan]
+                if md < r[0]:
+                    r[0] = md
+                if Md > r[1]:
+                    r[1] = Md
+
+    return start_date, end_date, date_ranges
+
+
+def get_base_list(bids):
+    base = {}
+    nbase = [0] * 2
+    for p, i in bids.items():
+        base[p] = d = {}
+        bids_prod = bids[p]
+        for c in i.keys():
+            d[c] = [copy.copy(nbase) for _ in range(len(bids_prod[c]))]
+    return base

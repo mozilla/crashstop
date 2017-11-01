@@ -9,23 +9,21 @@ from .const import INSTALLS
 
 
 def get_global_ratios(data):
-    res = {}
-    for chan, info in data.items():
-        R = len(info)
-        for numbers in info.values():
-            C = len(numbers)
-            break
-        x = np.empty((R, C), dtype=np.float64)
-        for i, numbers in enumerate(info.values()):
-            x[i, :] = [n[INSTALLS] for n in numbers.values()]
+    R = len(data)
+    for numbers in data.values():
+        C = len(numbers)
+        break
+    x = np.empty((R, C), dtype=np.float64)
+    for i, numbers in enumerate(data.values()):
+        x[i, :] = [n[INSTALLS] for n in numbers]
 
-        meds = np.median(x, axis=1)
-        notnull = meds != 0.
-        means = np.mean(x, axis=1)
-        stddevs = np.std(x, axis=1)
-        ratios = stddevs[notnull] / means[notnull]
-        res[chan] = float(np.median(ratios))
-    return res
+    meds = np.median(x, axis=1)
+    notnull = meds != 0.
+    means = np.mean(x, axis=1)
+    stddevs = np.std(x, axis=1)
+    ratios = stddevs[notnull] / means[notnull]
+
+    return float(np.median(ratios))
 
 
 def get_threshold(x, min_value, ratio):
@@ -34,18 +32,15 @@ def get_threshold(x, min_value, ratio):
     return x * (1. + ratio)
 
 
-def check_patch(numbers, pushdate, ratio, product, channel):
-    min_value = config.get_min(product, channel)
-    data = sorted(numbers.items(), key=lambda x: x[0])
-    bids = [bid for bid, _ in data]
-    numbers = [n[INSTALLS] for _, n in data]
+def check_patch(numbers, pushdate, bids, ratio, min_value):
+    numbers = [n[INSTALLS] for n in numbers]
 
     # pos is the position of the first build with the patch
     pos = bisect_left(bids, pushdate)
 
     if pos == 0:
         # all the builds contain the patch
-        return np.mean(numbers) < min_value
+        return bool(np.mean(numbers) < min_value)
 
     with_patch = numbers[pos:]
 
@@ -63,7 +58,7 @@ def check_patch(numbers, pushdate, ratio, product, channel):
             p = i
             break
         i = float(i)
-        m = (i * m + x) / float(i + 1)
+        m = (i * m + x) / (i + 1.)
 
     if p == pos:
         in_spike = m
@@ -71,3 +66,37 @@ def check_patch(numbers, pushdate, ratio, product, channel):
         in_spike = float(np.mean(without_patch[p:]))
 
     return get_threshold(mean_with_patch, min_value, 3. * ratio) < in_spike
+
+
+def compute_success(data, patches, bids, ratios):
+    res = {}
+    for prod, i in data.items():
+        bids_prod = bids[prod]
+        ratios_prod = ratios[prod]
+        res[prod] = res_prod = {}
+        for chan, j in i.items():
+            ratio = ratios_prod[chan]
+            bids_chan = [b for b, _ in bids_prod[chan]]
+            res_prod[chan] = res_chan = {}
+            min_value = config.get_min(prod, chan)
+            for sgn, numbers in j.items():
+                patch = patches[sgn]
+                for bug, k in patch.items():
+                    pushdate = k.get(chan)
+                    if not pushdate:
+                        continue
+
+                    if bids_chan[0] > pushdate or bids_chan[-1] < pushdate:
+                        continue
+
+                    success = check_patch(numbers, pushdate,
+                                          bids_chan, ratio,
+                                          min_value)
+
+                    if sgn not in res_chan:
+                        res_chan[sgn] = []
+                    res_chan[sgn].append({'numbers': numbers,
+                                          'pushdate': pushdate,
+                                          'bugid': bug,
+                                          'success': success})
+    return res

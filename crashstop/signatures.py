@@ -3,62 +3,32 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from collections import OrderedDict
+from dateutil.relativedelta import relativedelta
 from libmozdata import socorro
+from libmozdata import utils as lmdutils
 from . import datacollector as dc
-from . import utils, tools
+from . import utils, tools, config, patchinfo
 from .const import RAW, INSTALLS
 
 
-def get_min_max_dates(numbers):
-    dates = sorted(numbers.keys())
-    return dates[0], dates[-1]
+def get(date='today',
+        products=utils.get_products(),
+        channels=utils.get_channels()):
+    today = lmdutils.get_date_ymd(date)
+    few_days_ago = today - relativedelta(days=config.get_limit())
+    search_date = socorro.SuperSearch.get_search_date(few_days_ago)
 
+    bids = dc.get_buildids(search_date, channels, products)
+    start_date, end_date, date_ranges = utils.get_dates(bids)
+    patches = patchinfo.get(start_date, end_date, date_ranges)
 
-def get_interesting_sgns(data, patches, prod, chan, ratio):
-    res = {}
-    for sgn, numbers in data.items():
-        md, Md = get_min_max_dates(numbers)
-        if sgn in patches and chan in patches[sgn]['land']:
-            pushdate = patches[sgn]['land'][chan]
-            if md <= pushdate <= Md:
-                success = tools.check_patch(numbers, pushdate,
-                                            ratio, prod, chan)
-                res[sgn] = {'numbers': numbers,
-                            'pushdate': pushdate,
-                            'bugid': int(patches[sgn]['bugid']),
-                            'success': success}
-    return res
+    signatures = set(patches.keys())
+    res, ratios = dc.get_sgns_by_buildid(signatures, channels,
+                                         products, search_date,
+                                         bids)
+    res = tools.compute_success(res, patches, bids, ratios)
 
-
-def get(date='today'):
-    signatures = set()
-    patches = None
-    products = utils.get_products()
-    channels = utils.get_channels()
-    res_byprod = {}
-    bids_byprod = {}
-    ratios_byprod = {}
-    for product in products:
-        data, bids, ratios = dc.get_sgns_by_buildid(channels,
-                                                    product=product,
-                                                    date=date)
-        res_byprod[product] = data
-        bids_byprod[product] = {k: dict(v) for k, v in bids.items()}
-        ratios_byprod[product] = ratios
-        for info in data.values():
-            signatures |= set(info.keys())
-
-    if signatures:
-        patches = dc.get_patches(signatures)
-
-    res = {prod: {chan: {} for chan in channels} for prod in products}
-    for prod, i in res_byprod.items():
-        for chan, data in i.items():
-            ratio = ratios_byprod[prod][chan]
-            res[prod][chan] = get_interesting_sgns(data, patches,
-                                                   prod, chan, ratio)
-
-    return res, bids_byprod, ratios_byprod
+    return res, bids, ratios
 
 
 def get_for_urls_sgns(hg_urls, signatures, products, date='today'):

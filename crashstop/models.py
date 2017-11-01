@@ -8,7 +8,6 @@ import pytz
 from . import signatures, utils
 from . import db, app
 from .logger import logger
-from .const import RAW, INSTALLS
 
 
 class Buildid(db.Model):
@@ -28,14 +27,12 @@ class Buildid(db.Model):
 
     @staticmethod
     def add_buildids(data, commit=True):
-        db.session.query(Buildid).delete()
-
         for prod, i in data.items():
             for chan, j in i.items():
                 pc = Buildid.get_pc(prod, chan)
-                for d, v in j.items():
-                    b = Buildid(pc, d, v)
-                    db.session.add(b)
+                db.session.query(Buildid).filter_by(pc=pc).delete()
+                for d, v in j:
+                    db.session.add(Buildid(pc, d, v))
         if commit:
             db.session.commit()
 
@@ -74,7 +71,10 @@ class GlobalRatio(db.Model):
         for prod, i in data.items():
             for chan, ratio in i.items():
                 pc = Buildid.get_pc(prod, chan)
-                db.session.add(GlobalRatio(pc, ratio))
+                ins = pg.insert(GlobalRatio).values(pc=pc, ratio=ratio)
+                upd = ins.on_conflict_do_update(index_elements=['pc'],
+                                                set_=dict(ratio=ratio))
+                db.session.execute(upd)
         if commit:
             db.session.commit()
 
@@ -113,24 +113,21 @@ class Signatures(db.Model):
     def put_data(data, bids, ratios):
         GlobalRatio.put_data(ratios, commit=False)
         Buildid.add_buildids(bids, commit=False)
-        db.session.query(Signatures).delete()
 
         for product, i in data.items():
             for chan, j in i.items():
                 pc = Buildid.get_pc(product, chan)
-                dates = None
-                for sgn, info in j.items():
-                    bugid = info['bugid']
-                    numbers = info['numbers']
-                    pushdate = info['pushdate']
-                    success = info['success']
-                    if not dates:
-                        dates = sorted(numbers.keys())
-                    raw = [numbers[d][RAW] for d in dates]
-                    installs = [numbers[d][INSTALLS] for d in dates]
-                    s = Signatures(pc, sgn, bugid, raw,
-                                   installs, pushdate, success)
-                    db.session.add(s)
+                db.session.query(Signatures).filter_by(pc=pc).delete()
+                for sgn, infos in j.items():
+                    for info in infos:
+                        bugid = info['bugid']
+                        numbers = info['numbers']
+                        pushdate = info['pushdate']
+                        success = info['success']
+                        raw, installs = utils.get_raw_installs(numbers)
+                        s = Signatures(pc, sgn, bugid, raw,
+                                       installs, pushdate, success)
+                        db.session.add(s)
 
         db.session.commit()
 
@@ -157,7 +154,7 @@ class Signatures(db.Model):
     def get_bybugid(bugid):
         q = db.session.query(Signatures.pc, Signatures.signature,
                              Signatures.raw, Signatures.installs,
-                             Signatures.pushdate)
+                             Signatures.pushdate, Signatures.success)
         sgns = q.filter_by(bugid=bugid)
 
         data = {}
@@ -192,11 +189,17 @@ class Signatures(db.Model):
         return res
 
 
+def put_data(date='today'):
+    logger.info('Get data: started.')
+    data, bids, ratios = signatures.get(date=date)
+    Signatures.put_data(data, bids, ratios)
+    logger.info('Get data: finished.')
+
+
 def update(date='today'):
     d = lmdutils.get_date(date)
     logger.info('Update data for {}: started.'.format(d))
-    data, bids, ratios = signatures.get(date=date)
-    Signatures.put_data(data, bids, ratios)
+    put_data(date=date)
     logger.info('Update data for {}: finished.'.format(d))
 
 
@@ -206,6 +209,5 @@ def create(date='today'):
         d = lmdutils.get_date(date)
         logger.info('Create data for {}: started.'.format(d))
         db.create_all()
-        data, bids, ratios = signatures.get(date=date)
-        Signatures.put_data(data, bids, ratios)
+        put_data(date=date)
         logger.info('Create data for {}: finished.'.format(d))

@@ -3,16 +3,15 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import copy
-from collections import defaultdict
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import functools
 from libmozdata import socorro, utils as lmdutils
-from libmozdata.patchanalysis import get_patch_info
+from libmozdata.connection import Query
 from libmozdata.hgmozilla import Revision
-import time
 from . import config, utils, tools
 from .const import RAW, INSTALLS
+from .logger import logger
 
 
 def remove_dup_versions(data):
@@ -36,8 +35,8 @@ def remove_dup_versions(data):
     return res
 
 
-def get_buildids(search_date, channels, product):
-    data = {chan: list() for chan in channels}
+def get_buildids(search_date, channels, products):
+    data = {p: {c: list() for c in channels} for p in products}
 
     def handler(chan, threshold, json, data):
         if json['errors'] or not json['facets']['build_id']:
@@ -50,69 +49,73 @@ def get_buildids(search_date, channels, product):
                     buildid = facets['term']
                     data.append((buildid, version, count))
 
-    params = {'product': product,
+    params = {'product': '',
               'release_channel': '',
               'date': search_date,
               '_aggs.build_id': 'version',
               '_results_number': 0,
               '_facets_size': 1000}
 
-    searches = []
-    for chan in channels:
-        params = copy.deepcopy(params)
-        if chan == 'beta' and product == 'Firefox':
-            params['release_channel'] = ['beta', 'aurora']
-        else:
-            params['release_channel'] = chan
-        threshold = config.get_min_total(product, chan)
-        hdler = functools.partial(handler, chan, threshold)
-        searches.append(socorro.SuperSearch(params=params,
-                                            handler=hdler,
-                                            handlerdata=data[chan]))
+    queries = []
+    for prod in products:
+        pparams = copy.deepcopy(params)
+        pparams['product'] = prod
+        for chan in channels:
+            params = copy.deepcopy(pparams)
+            if chan == 'beta' and prod == 'Firefox':
+                params['release_channel'] = ['beta', 'aurora']
+            else:
+                params['release_channel'] = chan
+            threshold = config.get_min_total(prod, chan)
+            hdler = functools.partial(handler, chan, threshold)
+            queries.append(Query(socorro.SuperSearch.URL,
+                                 params=params,
+                                 handler=hdler,
+                                 handlerdata=data[prod][chan]))
 
-    for s in searches:
-        s.wait()
+    socorro.SuperSearch(queries=queries).wait()
 
-    data = remove_dup_versions(data)
+    for prod, info in data.items():
+        data[prod] = remove_dup_versions(info)
 
     res = {}
-    for chan, bids in data.items():
-        bids = sorted(bids, reverse=True)
-        min_v = config.get_versions(product, chan)
-        if len(bids) > min_v:
-            bids = bids[:min_v]
-        bids = [(utils.get_build_date(bid), v) for bid, v in bids]
-        res[chan] = bids
+    for prod, info in data.items():
+        res[prod] = d = {}
+        for chan, bids in info.items():
+            bids = sorted(bids)
+            min_v = config.get_versions(prod, chan)
+            if len(bids) > min_v:
+                bids = bids[-min_v:]
+            bids = [(utils.get_build_date(bid), v) for bid, v in bids]
+            d[chan] = bids
+
+    logger.info('Buildids for {}/{} got.'.format(products, channels))
 
     return res
 
 
-def get_sgns_by_buildid(channels, product='Firefox',
-                        date='today', query={}):
-    today = lmdutils.get_date_ymd(date)
-    few_days_ago = today - relativedelta(days=config.get_limit())
-    search_date = socorro.SuperSearch.get_search_date(few_days_ago)
-    bids = get_buildids(search_date, channels, product)
-    nbase = [0, 0]
-    base = {c: {b: copy.copy(nbase) for b, _ in bids[c]} for c in channels}
-    data = {}
+def get_sgns_by_buildid(signatures, channels, products, search_date, bids):
+    base = utils.get_base_list(bids)
     limit = config.get_limit_facets()
 
-    def handler(base, chan, bid, json, data):
+    logger.info('Get crash numbers for {}-{}: started.'.format(products,
+                                                               channels))
+
+    def handler(base, index, json, data):
         if json['errors'] or not json['facets']['signature']:
             return
         for facets in json['facets']['signature']:
             sgn = facets['term']
             if sgn not in data:
                 data[sgn] = copy.deepcopy(base)
-            data[sgn][bid][RAW] = facets['count']
+            data[sgn][index][RAW] = facets['count']
             facets = facets['facets']
             n = len(facets['install_time'])
             if n == limit:
                 n = facets['cardinality_install_time']['value']
-            data[sgn][bid][INSTALLS] = n
+            data[sgn][index][INSTALLS] = n
 
-    base_params = {'product': product,
+    base_params = {'product': '',
                    'release_channel': '',
                    'build_id': '',
                    'date': search_date,
@@ -121,37 +124,41 @@ def get_sgns_by_buildid(channels, product='Firefox',
                    '_results_number': 0,
                    '_facets': 'release_channel',
                    '_facets_size': limit}
-    base_params.update(query)
 
-    searches = []
-    for chan in channels:
-        params = copy.deepcopy(base_params)
-        params['release_channel'] = chan
-        data[chan] = {}
-        for bid, _ in bids[chan]:
-            params = copy.deepcopy(params)
-            params['build_id'] = utils.get_buildid(bid)
-            hdler = functools.partial(handler, base[chan], chan, bid)
-            searches.append(socorro.SuperSearch(params=params,
-                                                handler=hdler,
-                                                handlerdata=data[chan],
-                                                timeout=120))
-            time.sleep(1)
+    ratios = {}
+    res = {}
 
-    for s in searches:
-        s.wait()
+    for prod in products:
+        pparams = copy.deepcopy(base_params)
+        pparams['product'] = prod
+        base_prod = base[prod]
+        bids_prod = bids[prod]
+        ratios[prod] = ratios_prod = {}
+        res[prod] = res_prod = {}
+        for chan in channels:
+            params = copy.deepcopy(pparams)
+            params['release_channel'] = chan
+            data = {}
+            sbids = [b for b, _ in bids_prod[chan]]
+            queries = []
+            for index, bid in enumerate(sbids):
+                params = copy.deepcopy(params)
+                params['build_id'] = utils.get_buildid(bid)
+                hdler = functools.partial(handler, base_prod[chan], index)
+                queries.append(Query(socorro.SuperSearch.URL,
+                                     params=params,
+                                     handler=hdler,
+                                     handlerdata=data))
+            socorro.SuperSearch(queries=queries).wait()
+            ratios_prod[chan] = tools.get_global_ratios(data)
 
-    res = defaultdict(lambda: dict())
-    for chan, i in data.items():
-        threshold = config.get_min(product, chan)
-        for sgn, j in i.items():
-            numbers = [v[RAW] for v in j.values()]
-            if max(numbers) >= threshold:
-                res[chan][sgn] = j
+            # now we've ratios, we can remove useless signatures
+            res_prod[chan] = {s: n for s, n in data.items() if s in signatures}
 
-    ratios = tools.get_global_ratios(res)
+    logger.info('Get crash numbers for {}-{}: finished.'.format(products,
+                                                                channels))
 
-    return res, bids, ratios
+    return res, ratios
 
 
 def get_sgns_data(channels, bids, signatures, products, date='today'):
@@ -197,7 +204,7 @@ def get_sgns_data(channels, bids, signatures, products, date='today'):
                    '_facets': 'release_channel',
                    '_facets_size': limit}
 
-    searches = []
+    queries = []
     for product in products:
         pparams = copy.deepcopy(base_params)
         pparams['product'] = product
@@ -211,48 +218,13 @@ def get_sgns_data(channels, bids, signatures, products, date='today'):
                 params = copy.deepcopy(params)
                 params['build_id'] = utils.get_buildid(bid)
                 hdler = functools.partial(handler, bid)
-                searches.append(socorro.SuperSearch(params=params,
-                                                    handler=hdler,
-                                                    handlerdata=d2,
-                                                    timeout=120))
-
-    for s in searches:
-        s.wait()
+                queries.append(Query(socorro.SuperSearch.URL,
+                                     params=params,
+                                     handler=hdler,
+                                     handlerdata=d2))
+    socorro.SuperSearch(queries=queries).wait()
 
     return data
-
-
-def compare_lands(l1, l2):
-    chans = utils.get_channels()
-    for chan in chans:
-        if chan in l1 and chan in l2:
-            if l1[chan] <= l2[chan]:
-                return l2
-    return None
-
-
-def get_patches(signatures):
-    bugs_by_signature = socorro.Bugs.get_bugs(list(signatures))
-    bugs = set()
-    for b in bugs_by_signature.values():
-        bugs = bugs.union(set(b))
-
-    patches = get_patch_info(bugs, channels=utils.get_channels())
-    pushdates = {}
-
-    for sgn, bugs in bugs_by_signature.items():
-        for bug in map(str, bugs):
-            land = patches.get(bug, {}).get('land', {})
-            if land:
-                if sgn in pushdates:
-                    land = compare_lands(pushdates[sgn]['land'], land)
-                    if land:
-                        pushdates[sgn]['land'] = land
-                        pushdates[sgn]['bugid'] = bug
-                else:
-                    pushdates[sgn] = {'land': land,
-                                      'bugid': bug}
-    return pushdates
 
 
 def get_pushdates(chan_rev):
