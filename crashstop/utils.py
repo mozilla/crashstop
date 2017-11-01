@@ -184,8 +184,11 @@ def get_buildid(date):
 
 def set_position(info, dates):
     pushdate = info['pushdate']
-    pos = bisect_left(dates, pushdate)
-    info['position'] = pos - 1
+    if pushdate:
+        pos = bisect_left(dates, pushdate)
+        info['position'] = pos - 1
+    else:
+        info['position'] = -2
 
 
 def get_dates(bids):

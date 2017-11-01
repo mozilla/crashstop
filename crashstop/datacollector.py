@@ -178,7 +178,7 @@ def get_sgns_data(channels, bids, signatures, products, date='today'):
             for signature in signatures:
                 d2[signature] = {bid: nbase.copy() for bid in b2}
 
-    limit = config.get_limit_facets()
+    limit = 100
     signatures = ['=' + s for s in signatures]
 
     def handler(bid, json, data):
@@ -236,6 +236,7 @@ def get_pushdates(chan_rev):
 
     res = []
     data = {}
+
     for chan, revs in chan_rev.items():
         data[chan] = pd = []
         for rev in revs:

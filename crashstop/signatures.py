@@ -43,24 +43,22 @@ def get_for_urls_sgns(hg_urls, signatures, products, date='today'):
         return res
 
     chan_rev = utils.analyze_hg_urls(hg_urls)
-    if not chan_rev:
-        return res
-
     towait, pushdates = dc.get_pushdates(chan_rev)
 
     products = utils.get_products() if not products else products
     bids = {}
     res['versions'] = versions = {}
     dates = {}
+    channels = chan_rev.keys() if chan_rev else utils.get_channels()
     for product in products:
         bids[product] = d1 = {}
-        for chan in chan_rev.keys():
+        for chan in channels:
             pc = Buildid.get_pc(product, chan)
             v = Buildid.get_versions(pc)
             versions[(product, chan)] = v
             dates[(product, chan)] = d1[chan] = sorted(v.keys())
 
-    sgns_data = dc.get_sgns_data(chan_rev.keys(), bids,
+    sgns_data = dc.get_sgns_data(channels, bids,
                                  signatures, products,
                                  date=date)
 
@@ -74,7 +72,7 @@ def get_for_urls_sgns(hg_urls, signatures, products, date='today'):
         data[product] = d1 = {}
         for chan, j in i.items():
             d1[chan] = d2 = {}
-            pushdate = pushdates[chan]
+            pushdate = pushdates.get(chan)
             ds = dates[(product, chan)]
             for sgn, numbers in j.items():
                 raw = [0] * len(ds)

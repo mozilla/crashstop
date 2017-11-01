@@ -70,11 +70,15 @@
           <li>{{ chan }}
             <ul>
               {% for sgn, info in j -%}
-              <li style="margin:10px 0;"><a href="{{ info['socorro_url'] }}">{{ sgn|e }}</a>:<br>
+              <li style="margin:10px 0;"><a href="{{ info['socorro_url'] }}">{{ sgn|e }}</a>{% if info['position'] == -2 -%} (no patch information){% endif -%}:<br>
                 <table border="1">
                   <tr>
                     <th class="norm">build-id</th>
+                    {% if info['position'] == -2 -%}
+                    {% for pos, bid in enumerate(info['buildids']) %}<td class="gray"><a href="{{ links[(sgn, bid)] }}">{{ bid }}</a></td>{% endfor -%}
+                    {% else -%}
                     {% for pos, bid in enumerate(info['buildids']) %}<td class="{% if pos <= info['position'] -%}without{% else -%}with{% endif -%}"><a href="{{ links[(sgn, bid)] }}">{{ bid }}</a></td>{% endfor -%}
+                    {% endif -%}
                   </tr>
                   <tr>
                     <th class="norm">version</th>
