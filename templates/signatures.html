@@ -42,9 +42,9 @@
       </select>
       Filter:&nbsp;
       <select id="filter">
-        <option value="all"{% if filt == 'all' -%} selected{% endif %}>All</option>
-        <option value="successful"{% if filt == 'successful' -%} selected{% endif %}>Successful</option>
-        <option value="unsuccessful"{% if filt == 'unsuccessful' -%} selected{% endif %}>Unsuccessful</option>
+        <option value="all"{%- if filt == 'all' %} selected{% endif %}>All</option>
+        <option value="successful"{%- if filt == 'successful' %} selected{% endif %}>Successful</option>
+        <option value="unsuccessful"{%- if filt == 'unsuccessful' %} selected{% endif %}>Unsuccessful</option>
       </select>
       <input type="submit"
              value="Go !"/>
