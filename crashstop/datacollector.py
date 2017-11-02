@@ -140,8 +140,8 @@ def get_sgns_by_buildid(signatures, channels, products, search_date, bids):
             params['release_channel'] = chan
             data = {}
             sbids = [b for b, _ in bids_prod[chan]]
-            queries = []
             for index, bid in enumerate(sbids):
+                queries = []
                 params = copy.deepcopy(params)
                 params['build_id'] = utils.get_buildid(bid)
                 hdler = functools.partial(handler, base_prod[chan], index)
@@ -149,7 +149,7 @@ def get_sgns_by_buildid(signatures, channels, products, search_date, bids):
                                      params=params,
                                      handler=hdler,
                                      handlerdata=data))
-            socorro.SuperSearch(queries=queries).wait()
+                socorro.SuperSearch(queries=queries).wait()
             ratios_prod[chan] = tools.get_global_ratios(data)
 
             # now we've ratios, we can remove useless signatures
