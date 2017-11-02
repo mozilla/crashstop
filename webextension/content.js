@@ -36,6 +36,6 @@ if (container) {
         a.setAttribute("target", "_blank");
         span.appendChild(a);
         div.appendChild(span);
-        container.appendChild(div);
+        container.insertBefore(div, container.lastElementChild);
     }
 }
