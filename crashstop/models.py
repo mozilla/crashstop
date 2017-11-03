@@ -111,13 +111,15 @@ class Signatures(db.Model):
 
     @staticmethod
     def put_data(data, bids, ratios):
+        logger.info('Put signatures in db: started.')
         GlobalRatio.put_data(ratios, commit=False)
-        Buildid.add_buildids(bids, commit=False)
+        Buildid.add_buildids(bids, commit=True)
 
         for product, i in data.items():
             for chan, j in i.items():
                 pc = Buildid.get_pc(product, chan)
                 db.session.query(Signatures).filter_by(pc=pc).delete()
+                db.session.commit()
                 for sgn, infos in j.items():
                     for info in infos:
                         bugid = info['bugid']
@@ -128,8 +130,9 @@ class Signatures(db.Model):
                         s = Signatures(pc, sgn, bugid, raw,
                                        installs, pushdate, success)
                         db.session.add(s)
+                    db.session.commit()
 
-        db.session.commit()
+        logger.info('Put signatures in db: finished.')
 
     @staticmethod
     def get_bypc(product, channel, filt):

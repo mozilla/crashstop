@@ -11,5 +11,5 @@
         "release"
     ],
     "days_limit": 120,
-    "facets_limit": 1000
+    "facets_limit": 500
 }
