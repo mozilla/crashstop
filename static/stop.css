@@ -16,6 +16,10 @@ td.without {
     font-size:80%;
 }
 
+td.buildid {
+    font-size:80%;
+}
+
 th.norm {
     font-weight:normal;
     text-align:left;

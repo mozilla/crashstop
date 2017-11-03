@@ -75,7 +75,7 @@
                   <tr>
                     <th class="norm">build-id</th>
                     {% if info['position'] == -2 -%}
-                    {% for pos, bid in enumerate(info['buildids']) %}<td class="gray"><a href="{{ links[(sgn, bid)] }}">{{ bid }}</a></td>{% endfor -%}
+                    {% for pos, bid in enumerate(info['buildids']) %}<td class="gray buildid"><a href="{{ links[(sgn, bid)] }}">{{ bid }}</a></td>{% endfor -%}
                     {% else -%}
                     {% for pos, bid in enumerate(info['buildids']) %}<td class="{% if pos <= info['position'] -%}without{% else -%}with{% endif -%}"><a href="{{ links[(sgn, bid)] }}">{{ bid }}</a></td>{% endfor -%}
                     {% endif -%}
