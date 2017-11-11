@@ -31,30 +31,33 @@ def get(date='today',
     return res, bids, ratios
 
 
-def get_for_urls_sgns(hg_urls, signatures, products, date='today'):
+def get_for_urls_sgns(hg_urls, signatures, products,
+                      sumup=False, date='today'):
     from .models import Buildid
 
     data = {}
     res = {'data': data,
            'versions': {}}
 
-    signatures = utils.get_signatures(signatures)
+    if not sumup:
+        signatures = utils.get_signatures(signatures)
     if not signatures:
         return res
 
-    chan_rev = utils.analyze_hg_urls(hg_urls)
+    chan_rev = utils.analyze_hg_urls(hg_urls, sumup=sumup)
     towait, pushdates = dc.get_pushdates(chan_rev)
 
     products = utils.get_products() if not products else products
     bids = {}
     res['versions'] = versions = {}
     dates = {}
-    channels = chan_rev.keys() if chan_rev else utils.get_channels()
+    channels = utils.get_channels()
+    all_versions = Buildid.get_versions(products, channels)
     for product in products:
         bids[product] = d1 = {}
+        all_v_prod = all_versions[product]
         for chan in channels:
-            pc = Buildid.get_pc(product, chan)
-            v = Buildid.get_versions(pc)
+            v = all_v_prod[chan]
             versions[(product, chan)] = v
             dates[(product, chan)] = d1[chan] = sorted(v.keys())
 

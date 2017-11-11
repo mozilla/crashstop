@@ -2,6 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from collections import defaultdict
 import copy
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -165,6 +166,12 @@ def get_sgns_data(channels, bids, signatures, products, date='today'):
     few_days_ago = today - relativedelta(days=config.get_limit())
     search_date = socorro.SuperSearch.get_search_date(few_days_ago)
 
+    all_bids = []
+    for i in bids.values():
+        for j in i.values():
+            for bid in j:
+                all_bids.append(utils.get_buildid(bid))
+
     nbase = [0, 0]
     data = {}
 
@@ -175,55 +182,62 @@ def get_sgns_data(channels, bids, signatures, products, date='today'):
             d1[chan] = d2 = {}
             b2 = b1[chan]
             for signature in signatures:
-                d2[signature] = {bid: nbase.copy() for bid in b2}
+                d2[signature] = b2
 
-    limit = 100
-    signatures = ['=' + s for s in signatures]
+    limit = 80
 
-    def handler(bid, json, data):
-        if json['errors'] or not json['facets']['signature']:
+    def handler(sgn, json, data):
+        if json['errors'] or not json['facets']['build_id']:
             return
-        for facets in json['facets']['signature']:
-            sgn = facets['term']
-            data[sgn][bid][RAW] = facets['count']
-            facets = facets['facets']
-            n = len(facets['install_time'])
-            if n == limit:
-                n = facets['cardinality_install_time']['value']
-            data[sgn][bid][INSTALLS] = n
+        for facets in json['facets']['build_id']:
+            bid = utils.get_build_date(facets['term'])
+            _facets = facets['facets']
+            prod = _facets['product'][0]['term']
+            chan = _facets['release_channel'][0]['term']
+            if chan == 'aurora':
+                chan = 'beta'
+            dpc = data[prod][chan]
+            nums = dpc[sgn]
+            if isinstance(nums, list):
+                dpc[sgn] = nums = {bid: copy.copy(nbase) for bid in dpc[sgn]}
+            n = nums[bid]
+            n[RAW] = facets['count']
+            N = len(_facets['install_time'])
+            if N == limit:
+                N = _facets['cardinality_install_time']['value']
+            n[INSTALLS] = N
 
-    base_params = {'product': '',
-                   'release_channel': '',
-                   'build_id': '',
-                   'signature': signatures,
+    base_params = {'build_id': all_bids,
+                   'signature': '',
                    'date': search_date,
-                   '_aggs.signature': ['install_time',
-                                       '_cardinality.install_time'],
+                   '_aggs.build_id': ['install_time',
+                                      '_cardinality.install_time',
+                                      'release_channel',
+                                      'product'],
                    '_results_number': 0,
-                   '_facets': 'release_channel',
+                   '_facets': 'signature',
                    '_facets_size': limit}
 
     queries = []
-    for product in products:
-        pparams = copy.deepcopy(base_params)
-        pparams['product'] = product
-        d1 = data[product]
-        b1 = bids[product]
-        for chan in channels:
-            params = copy.deepcopy(pparams)
-            params['release_channel'] = chan
-            d2 = d1[chan]
-            for bid in b1[chan]:
-                params = copy.deepcopy(params)
-                params['build_id'] = utils.get_buildid(bid)
-                hdler = functools.partial(handler, bid)
-                queries.append(Query(socorro.SuperSearch.URL,
-                                     params=params,
-                                     handler=hdler,
-                                     handlerdata=d2))
+
+    for signature in signatures:
+        params = copy.deepcopy(base_params)
+        params['signature'] = '=' + signature
+        hdler = functools.partial(handler, signature)
+        queries.append(Query(socorro.SuperSearch.URL,
+                             params=params,
+                             handler=hdler,
+                             handlerdata=data))
     socorro.SuperSearch(queries=queries).wait()
 
-    return data
+    res = defaultdict(lambda: defaultdict(lambda: dict()))
+    for p, i in data.items():
+        for c, j in i.items():
+            for sgn, numbers in j.items():
+                if not isinstance(numbers, list):
+                    res[p][c][sgn] = numbers
+
+    return res
 
 
 def get_pushdates(chan_rev):

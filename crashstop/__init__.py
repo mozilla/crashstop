@@ -34,6 +34,12 @@ def crashdata_html():
     return html.crashdata()
 
 
+@app.route('/sumup.html')
+def sumup_html():
+    from crashstop import html
+    return html.sumup()
+
+
 @app.route('/clouseau.ico')
 def favicon():
     return send_from_directory('../static', 'clouseau.ico')

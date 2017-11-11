@@ -63,13 +63,18 @@ def analyze_hg_url(url):
     return channel, rev
 
 
-def analyze_hg_urls(urls):
+def analyze_hg_urls(urls, sumup=False):
     res = defaultdict(lambda: list())
-    for url in urls:
-        url = url.strip()
-        chan, rev = analyze_hg_url(url)
-        if chan:
-            res[chan].append(rev)
+    if sumup:
+        for url in urls:
+            url = url.split('|')
+            res[url[0]].append(url[1])
+    else:
+        for url in urls:
+            url = url.strip()
+            chan, rev = analyze_hg_url(url)
+            if chan:
+                res[chan].append(rev)
     return res
 
 

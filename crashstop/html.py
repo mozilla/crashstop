@@ -3,7 +3,7 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from flask import request, render_template
-from . import utils, models, signatures
+from . import utils, models, signatures, cache
 
 
 def sgns():
@@ -55,3 +55,9 @@ def crashdata():
                            versions=versions,
                            products=utils.get_products(),
                            enumerate=enumerate)
+
+
+def sumup():
+    sgns = request.args.getlist('s')
+    hgurls = request.args.getlist('h')
+    return cache.get_sumup(hgurls, sgns)

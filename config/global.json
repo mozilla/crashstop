@@ -11,5 +11,6 @@
         "release"
     ],
     "days_limit": 120,
-    "facets_limit": 500
+    "facets_limit": 500,
+    "cache_time": 600
 }

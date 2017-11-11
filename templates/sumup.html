@@ -1,0 +1,76 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+     - License, v. 2.0. If a copy of the MPL was not distributed with this file,
+     - You can obtain one at http://mozilla.org/MPL/2.0/.  -->
+
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <link rel="stylesheet" href="/stop.css">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Crash data</title>
+    <style>
+      * {
+      font-size:90.2%
+      }
+    </style>
+    <script type="text/javascript">
+      function resize_iframe() {
+          let body = document.body;
+          let html = document.documentElement;
+          let height = Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight) + 5;
+          if (parent.postMessage) {
+              parent.postMessage(height, "*");
+          }
+      }
+    </script>
+  </head>
+  <body style="margin:0px;padding:0px;" onload="javascript:resize_iframe();">
+    <table border="1">
+      {% if data -%}
+      <tr>
+        <td colspan="100">
+          <span class="without" style="float:left;width:50%;">without patch</span>
+          <span class="with" style="float:left;width:50%;">with patch</span>
+        </td>
+      </tr>
+      {% for prod, i in data.items() -%}
+      {% for chan, j in i.items() -%}
+      {% for sgn, info in j -%}
+      <tr class="gray">
+        <td colspan="100" style="font-size:110%">
+          <a href="{{ info['socorro_url'] }}">{{ sgn|e }}</a> in {{ prod }}&mdash;{{ chan }}
+        </td>
+      </tr>
+      <tr>
+        <th class="norm">build-id</th>
+        {% if info['position'] == -2 -%}
+        {% for pos, bid in enumerate(info['buildids']) %}<td class="gray buildid"><a href="{{ links[(sgn, bid)] }}">{{ bid }}</a></td>{% endfor -%}
+        {% else -%}
+        {% for pos, bid in enumerate(info['buildids']) %}<td class="{% if pos <= info['position'] -%}without{% else -%}with{% endif -%}"><a href="{{ links[(sgn, bid)] }}">{{ bid }}</a></td>{% endfor -%}
+        {% endif -%}
+      </tr>
+      <tr>
+        <th class="norm">version</th>
+        {% for bid in info['buildids'] %}<td>{{ versions[(prod, chan)][bid] }}</td>{% endfor -%}
+      </tr>
+      <tr class="gray">
+        <th class="norm">installs</th>
+        {% for n in info['installs'] %}<td class="num">{{ n }}</td>{% endfor -%}
+      </tr>
+      <tr>
+        <th class="norm">crashes</th>
+        {% for n in info['raw'] %}<td class="num">{{ n }}</td>{% endfor -%}
+      </tr>
+      {% endfor -%}
+      {% endfor -%}
+      {% endfor -%}
+      {% else -%}
+      <tr>
+        <td>
+          No crash in the last builds \o/
+        </td>
+      </tr>      
+      {% endif -%}
+    </table>
+  </body>
+</html>

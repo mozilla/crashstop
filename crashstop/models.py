@@ -5,23 +5,27 @@
 from libmozdata import utils as lmdutils
 import sqlalchemy.dialects.postgresql as pg
 import pytz
+import six
 from . import signatures, utils
 from . import db, app
 from .logger import logger
 
 
+CHANNEL_TYPE = db.Enum(*utils.get_channels(), name='CHANNEL_TYPE')
+PRODUCT_TYPE = db.Enum(*utils.get_products(), name='PRODUCT_TYPE')
+
+
 class Buildid(db.Model):
     __tablename__ = 'buildid'
 
-    pc = db.Column(db.String(3), primary_key=True)
+    product = db.Column(PRODUCT_TYPE, primary_key=True)
+    channel = db.Column(CHANNEL_TYPE, primary_key=True)
     buildid = db.Column(db.DateTime(timezone=True), primary_key=True)
     version = db.Column(db.String(12))
 
-    PRODS = {p[:2]: p for p in utils.get_products()}
-    CHANS = {c[:1].upper(): c for c in utils.get_channels()}
-
-    def __init__(self, pc, buildid, version):
-        self.pc = pc
+    def __init__(self, product, channel, buildid, version):
+        self.product = product
+        self.channel = channel
         self.buildid = buildid
         self.version = version
 
@@ -29,40 +33,42 @@ class Buildid(db.Model):
     def add_buildids(data, commit=True):
         for prod, i in data.items():
             for chan, j in i.items():
-                pc = Buildid.get_pc(prod, chan)
-                db.session.query(Buildid).filter_by(pc=pc).delete()
+                q = db.session.query(Buildid).filter(Buildid.product == prod,
+                                                     Buildid.channel == chan)
+                q.delete()
                 for d, v in j:
-                    db.session.add(Buildid(pc, d, v))
+                    db.session.add(Buildid(prod, chan, d, v))
         if commit:
             db.session.commit()
 
     @staticmethod
-    def get_versions(pc):
-        query = db.session.query(Buildid.buildid, Buildid.version)
-        versions = query.filter_by(pc=pc)
-        res = {bid.astimezone(pytz.utc): v for bid, v in versions}
+    def get_versions(products=utils.get_products(),
+                     channels=utils.get_channels()):
+        if isinstance(products, six.string_types):
+            products = [products]
+        if isinstance(channels, six.string_types):
+            channels = [channels]
+
+        res = {p: {c: {} for c in channels} for p in products}
+        bids = db.session.query(Buildid).filter(Buildid.product.in_(products),
+                                                Buildid.channel.in_(channels))
+        for bid in bids:
+            d = res[bid.product][bid.channel]
+            buildid = bid.buildid.astimezone(pytz.utc)
+            d[buildid] = bid.version
         return res
-
-    @staticmethod
-    def get_pc(product, channel):
-        return product[:2] + channel[0].upper()
-
-    @staticmethod
-    def get_prod_chan(pc):
-        p = pc[:2]
-        c = pc[-1]
-
-        return Buildid.PRODS[p], Buildid.CHANS[c]
 
 
 class GlobalRatio(db.Model):
     __tablename__ = 'globalratio'
 
-    pc = db.Column(db.String(3), primary_key=True)
+    product = db.Column(PRODUCT_TYPE, primary_key=True)
+    channel = db.Column(CHANNEL_TYPE, primary_key=True)
     ratio = db.Column(db.Float)
 
-    def __init__(self, pc, ratio):
-        self.pc = pc
+    def __init__(self, product, channel, ratio):
+        self.product = product
+        self.channel = channel
         self.ratio = ratio
 
     @staticmethod
@@ -70,29 +76,23 @@ class GlobalRatio(db.Model):
         db.session.query(GlobalRatio).delete()
         for prod, i in data.items():
             for chan, ratio in i.items():
-                pc = Buildid.get_pc(prod, chan)
-                ins = pg.insert(GlobalRatio).values(pc=pc, ratio=ratio)
-                upd = ins.on_conflict_do_update(index_elements=['pc'],
+                ins = pg.insert(GlobalRatio).values(product=prod,
+                                                    channel=chan,
+                                                    ratio=ratio)
+                upd = ins.on_conflict_do_update(index_elements=['product',
+                                                                'channel'],
                                                 set_=dict(ratio=ratio))
                 db.session.execute(upd)
         if commit:
             db.session.commit()
-
-    @staticmethod
-    def get_ratios(pcs):
-        pcs = [Buildid.get_pc(p, c) for p, c in pcs]
-        grs = db.session.query(GlobalRatio).filter_by(GlobalRatio.pc.in_(pcs))
-        res = {}
-        for gr in grs:
-            res[Buildid.get_prod_chan(gr.pc)] = gr.ratio
-        return res
 
 
 class Signatures(db.Model):
     __tablename__ = 'signatures'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    pc = db.Column(db.String(3))
+    product = db.Column(PRODUCT_TYPE, primary_key=True)
+    channel = db.Column(CHANNEL_TYPE, primary_key=True)
     signature = db.Column(db.String(512))
     bugid = db.Column(db.Integer, default=0)
     raw = db.Column(pg.ARRAY(db.Integer))
@@ -100,8 +100,10 @@ class Signatures(db.Model):
     pushdate = db.Column(db.DateTime(timezone=True))
     success = db.Column(db.Boolean)
 
-    def __init__(self, pc, signature, bugid, raw, installs, pushdate, success):
-        self.pc = pc
+    def __init__(self, product, channel, signature,
+                 bugid, raw, installs, pushdate, success):
+        self.product = product
+        self.channel = channel
         self.signature = signature
         self.bugid = bugid
         self.raw = raw
@@ -117,8 +119,8 @@ class Signatures(db.Model):
 
         for product, i in data.items():
             for chan, j in i.items():
-                pc = Buildid.get_pc(product, chan)
-                db.session.query(Signatures).filter_by(pc=pc).delete()
+                db.session.query(Signatures).filter_by(product=product,
+                                                       channel=chan).delete()
                 db.session.commit()
                 for sgn, infos in j.items():
                     for info in infos:
@@ -127,28 +129,30 @@ class Signatures(db.Model):
                         pushdate = info['pushdate']
                         success = info['success']
                         raw, installs = utils.get_raw_installs(numbers)
-                        s = Signatures(pc, sgn, bugid, raw,
+                        s = Signatures(product, chan, sgn, bugid, raw,
                                        installs, pushdate, success)
                         db.session.add(s)
                     db.session.commit()
 
         logger.info('Put signatures in db: finished.')
 
+    # TODO: gere pc
     @staticmethod
     def get_bypc(product, channel, filt):
-        pc = Buildid.get_pc(product, channel)
         query = db.session.query(Signatures)
         if filt == 'all':
-            sgns = query.filter_by(pc=pc)
+            sgns = query.filter_by(product=product,
+                                   channel=channel)
         else:
-            sgns = query.filter_by(pc=pc,
+            sgns = query.filter_by(product=product,
+                                   channel=channel,
                                    success=filt == 'successful')
 
-        versions = Buildid.get_versions(pc)
+        versions = Buildid.get_versions(product, channel)
 
         d = {}
         res = {'signatures': d,
-               'versions': versions}
+               'versions': versions[product][channel]}
 
         for sgn in sgns:
             d[sgn.signature] = {'bugid': sgn.bugid,
@@ -161,9 +165,10 @@ class Signatures(db.Model):
 
     @staticmethod
     def get_bybugid(bugid):
-        q = db.session.query(Signatures.pc, Signatures.signature,
-                             Signatures.raw, Signatures.installs,
-                             Signatures.pushdate, Signatures.success)
+        q = db.session.query(Signatures.product, Signatures.channel,
+                             Signatures.signature, Signatures.raw,
+                             Signatures.installs, Signatures.pushdate,
+                             Signatures.success)
         sgns = q.filter_by(bugid=bugid)
 
         data = {}
@@ -173,18 +178,19 @@ class Signatures(db.Model):
         cache = {}
 
         for sgn in sgns:
-            prod, chan = Buildid.get_prod_chan(sgn.pc)
+            prod, chan = sgn.product, sgn.channel
             if prod not in res:
                 res[prod] = {}
             if chan not in res[prod]:
                 res[prod][chan] = {}
-            if sgn.pc not in versions:
-                v = Buildid.get_versions(sgn.pc)
+            t = (prod, chan)
+            if t not in versions:
+                v = Buildid.get_versions(*t)[prod][chan]
                 d = sorted(v.keys())
-                cache[sgn.pc] = d
-                versions[(prod, chan)] = v
+                cache[t] = d
+                versions[t] = v
 
-            dates = cache[sgn.pc]
+            dates = cache[t]
             pushdate = sgn.pushdate.astimezone(pytz.utc)
             if prod not in data:
                 data[prod] = {}

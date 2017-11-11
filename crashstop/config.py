@@ -51,3 +51,7 @@ def get_limit():
 
 def get_limit_facets():
     return _get_global()['facets_limit']
+
+
+def get_cache_time():
+    return _get_global()['cache_time']
