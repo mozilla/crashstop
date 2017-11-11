@@ -31,7 +31,7 @@
         <td colspan="100">
           <span class="without" style="float:left;width:33.33%;">without patch</span>
           <span class="with" style="float:left;width:33.33%;">with patch</span>
-          <span class="pink" style="float:left;width:33.34%;">no patch info</span>
+          <span class="lavender" style="float:left;width:33.34%;">no patch info</span>
         </td>
       </tr>
       {% for prod, i in data.items() -%}
@@ -45,7 +45,7 @@
       <tr>
         <th class="norm">build-id</th>
         {% if info['position'] == -2 -%}
-        {% for pos, bid in enumerate(info['buildids']) %}<td class="pink buildid"><a href="{{ links[(sgn, bid)] }}">{{ bid }}</a></td>{% endfor -%}
+        {% for pos, bid in enumerate(info['buildids']) %}<td class="lavender buildid"><a href="{{ links[(sgn, bid)] }}">{{ bid }}</a></td>{% endfor -%}
         {% else -%}
         {% for pos, bid in enumerate(info['buildids']) %}<td class="{% if pos <= info['position'] -%}without{% else -%}with{% endif -%}"><a href="{{ links[(sgn, bid)] }}">{{ bid }}</a></td>{% endfor -%}
         {% endif -%}
