@@ -69,7 +69,8 @@ def get_for_urls_sgns(hg_urls, signatures, products,
         tw.wait()
 
     for chan, pds in pushdates.items():
-        pushdates[chan] = max(pds)
+        if pds:
+            pushdates[chan] = max(pds)
 
     for product, i in sgns_data.items():
         data[product] = d1 = {}
