@@ -12,6 +12,11 @@ from . import config, signatures, utils
 from .logger import logger
 
 
+__CLIENT = Client(os.environ.get('MEMCACHEDCLOUD_SERVERS').split(','),
+                  os.environ.get('MEMCACHEDCLOUD_USERNAME'),
+                  os.environ.get('MEMCACHEDCLOUD_PASSWORD'))
+
+
 def render_sumup(hgurls, sgns):
     data = signatures.get_for_urls_sgns(hgurls, sgns, [], sumup=True)
     data, links, versions = signatures.prepare_bug_for_html(data)
@@ -24,10 +29,8 @@ def render_sumup(hgurls, sgns):
                            enumerate=enumerate)
 
 
-def get_cache():
-    return Client(os.environ.get('MEMCACHEDCLOUD_SERVERS').split(','),
-                  os.environ.get('MEMCACHEDCLOUD_USERNAME'),
-                  os.environ.get('MEMCACHEDCLOUD_PASSWORD'))
+def get_client():
+    return __CLIENT
 
 
 def get_hash(key):
@@ -41,7 +44,7 @@ def get_sumup(hg_urls, signatures):
     key = '\n'.join(chain(signatures,
                           hg_urls))
     key = get_hash(key)
-    bcache = get_cache()
+    bcache = get_client()
     for _ in [0, 1]:
         if bcache.add(key, 0):
             value = render_sumup(hg_urls, signatures)
@@ -59,7 +62,7 @@ def get_sumup(hg_urls, signatures):
                 if value != 0:
                     # we've a correct value
                     return value
-                time.sleep(0.2)
+                time.sleep(0.1)
 
     # if we're here then it means that value is two times None...
     # so probably the memcached server is down
@@ -69,4 +72,4 @@ def get_sumup(hg_urls, signatures):
 
 
 def clear():
-    get_cache().flush_all()
+    get_client().flush_all()
