@@ -9,16 +9,18 @@ const container = document.getElementById(selector);
 if (container) {
     const signatures = [];
     document.querySelectorAll("#" + selector + " a").forEach(a => {
-        let s = a.innerText.trim();
-        const obat = s.startsWith("[@");
-        const cb = s.endsWith("]");
-        if (obat) {
-            s = cb ? s.slice(2, -1) : s.slice(2);
-            s = s.trim();
-        } else if (cb) {
-            s = s.slice(-1).trim();
+        if (a.href.startsWith("https://crash-stats.mozilla.com/signature")) {
+            let s = a.innerText.trim();
+            const obat = s.startsWith("[@");
+            const cb = s.endsWith("]");
+            if (obat) {
+                s = cb ? s.slice(2, -1) : s.slice(2);
+                s = s.trim();
+            } else if (cb) {
+                s = s.slice(-1).trim();
+            }
+            signatures.push("s=" + s);
         }
-        signatures.push("s=" + s);
     });
     if (signatures.length != 0) {
         const hgurlPattern = new RegExp("^http[s]?://hg\.mozilla\.org/(?:releases/)?mozilla-([^/]*)/rev/([0-9a-f]+)$");
