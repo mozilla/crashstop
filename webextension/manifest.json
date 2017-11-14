@@ -1,7 +1,7 @@
 {
     "name": "Bugzilla Crash Stop",
     "description": "This webextension inserts table with data under crash signatures to check if the patches had an effect on crash numbers.",
-    "version": "0.1.4",
+    "version": "0.1.5",
     "manifest_version": 2,
     "applications": {
         "gecko": {
@@ -18,5 +18,5 @@
             "js": ["content.js"],
             "run_at": "document_end"
         }
-    ]
+    ],
 }

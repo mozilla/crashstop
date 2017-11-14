@@ -67,13 +67,6 @@ if (container) {
         const crashStopLink = encodeURI(sumup + "?" + hpart + spart);
         const iframe = document.createElement("iframe");
         const div = document.createElement("div");
-        iframe.setAttribute("src", crashStopLink);
-        iframe.setAttribute("id", "crash-stop-iframe");
-        iframe.setAttribute("style", "display:block;top:0px;left:0px;width:100%;height:100%;border:0px;");
-        iframe.setAttribute("scrolling", "no");
-        div.setAttribute("style", "display:block;height:100%;");
-        div.appendChild(iframe);
-        container.insertBefore(div, container.lastElementChild);
         window.addEventListener("message", function (e) {
             if (e.origin == crashStop) {
                 const iframe = document.getElementById("crash-stop-iframe");
@@ -81,5 +74,12 @@ if (container) {
 
             }
         });
+        iframe.setAttribute("src", crashStopLink);
+        iframe.setAttribute("id", "crash-stop-iframe");
+        iframe.setAttribute("style", "display:block;top:0px;left:0px;width:100%;height:100%;border:0px;");
+        iframe.setAttribute("scrolling", "no");
+        div.setAttribute("style", "display:block;height:100%;");
+        div.appendChild(iframe);
+        container.insertBefore(div, container.lastElementChild);
     }
 }

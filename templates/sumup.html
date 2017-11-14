@@ -14,17 +14,17 @@
       }
     </style>
     <script type="text/javascript">
-      function resize_iframe() {
-          let body = document.body;
-          let html = document.documentElement;
-          let height = Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight) + 5;
+      document.addEventListener("DOMContentLoaded", function(event) {
+          const body = document.body;
+          const html = document.documentElement;
+          const height = Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight) + 5;
           if (parent.postMessage) {
               parent.postMessage(height, "*");
           }
-      }
+      });
     </script>
   </head>
-  <body style="margin:0px;padding:0px;" onload="javascript:resize_iframe();">
+  <body style="margin:0px;padding:0px;">
     <table border="1">
       {% if data -%}
       <tr>
