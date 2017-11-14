@@ -41,6 +41,7 @@ def sumup_html():
 
 
 @app.route('/clouseau.ico')
+@app.route('/favicon.ico')
 def favicon():
     return send_from_directory('../static', 'clouseau.ico')
 
