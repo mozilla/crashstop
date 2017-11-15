@@ -55,6 +55,7 @@ def get_buildids(search_date, channels, products):
               'date': search_date,
               '_aggs.build_id': 'version',
               '_results_number': 0,
+              '_facets': 'release_channel',
               '_facets_size': 1000}
 
     queries = []
@@ -161,26 +162,33 @@ def get_sgns_by_buildid(signatures, channels, products, search_date, bids):
     return res, ratios
 
 
-def get_all_buildids(bids):
-    all_bids = {}
+def get_all_buildids(versions):
+    bids = {}
     doubloons = {}
-    for p, i in bids.items():
+    all_bids = {}
+    for p, i in versions.items():
+        all_bids[p] = all_bids_p = {}
         for c, j in i.items():
-            for bid in j:
+            all_bids_p[c] = all_bids_p_c = []
+            for bid, v in j.items():
+                all_bids_p_c.append(bid)
                 bid = utils.get_buildid(bid)
-                if bid in all_bids:
+                if bid in bids:
                     # we've a doubloon
                     if bid not in doubloons:
-                        doubloons[bid] = [all_bids[bid]]
-                    doubloons[bid].append((p, c))
-                    del all_bids[bid]
+                        doubloons[bid] = [bids[bid]]
+                    doubloons[bid].append((p, c, v))
+                    del bids[bid]
                 else:
-                    all_bids[bid] = (p, c)
+                    bids[bid] = (p, c, v)
 
-    return all_bids, doubloons
+    all_versions = {v for _,  _, v in bids.values()}
+    all_versions = list(all_versions)
+
+    return all_bids, bids, all_versions, doubloons
 
 
-def get_sgns_data(channels, bids, signatures, products, date='today'):
+def get_sgns_data(channels, versions, signatures, products, date='today'):
     today = lmdutils.get_date_ymd(date)
     few_days_ago = today - relativedelta(days=config.get_limit())
     search_date = socorro.SuperSearch.get_search_date(few_days_ago)
@@ -188,7 +196,7 @@ def get_sgns_data(channels, bids, signatures, products, date='today'):
     nbase = [0, 0]
     data = {}
 
-    all_bids, doubloons = get_all_buildids(bids)
+    bids, all_bids, all_versions, doubloons = get_all_buildids(versions)
 
     for product in products:
         data[product] = d1 = {}
@@ -211,7 +219,7 @@ def get_sgns_data(channels, bids, signatures, products, date='today'):
             return
         for facets in json['facets']['build_id']:
             bid = facets['term']
-            p, c = all_bids[str(bid)]
+            p, c, _ = all_bids[str(bid)]
             bid = utils.get_build_date(bid)
             _facets = facets['facets']
             prod = _facets['product'][0]['term']
@@ -234,6 +242,7 @@ def get_sgns_data(channels, bids, signatures, products, date='today'):
 
     base_params = {'build_id': list(all_bids.keys()),
                    'signature': '',
+                   'version': all_versions,
                    'date': search_date,
                    '_aggs.build_id': ['install_time',
                                       '_cardinality.install_time',
@@ -255,7 +264,9 @@ def get_sgns_data(channels, bids, signatures, products, date='today'):
                              handler=hdler,
                              handlerdata=data))
     socorro.SuperSearch(queries=queries).wait()
-    doubloons_queries.wait()
+
+    if doubloons_queries:
+        doubloons_queries.wait()
 
     res = defaultdict(lambda: defaultdict(lambda: dict()))
     for p, i in data.items():
@@ -268,6 +279,9 @@ def get_sgns_data(channels, bids, signatures, products, date='today'):
 
 
 def get_sgns_for_doubloons(doubloons, signatures, search_date, base_data):
+    if not doubloons:
+        return None
+
     limit = 50
     nbase = [0, 0]
 
@@ -300,18 +314,21 @@ def get_sgns_for_doubloons(doubloons, signatures, search_date, base_data):
                    '_facets_size': limit}
 
     queries = []
-    for bid, pcs in doubloons.items():
+    for bid, pcvs in doubloons.items():
         bparams = copy.deepcopy(base_params)
         bparams['build_id'] = bid
         bid = utils.get_build_date(bid)
-        for pc in pcs:
+        for pcv in pcvs:
             params = copy.deepcopy(bparams)
-            params['product'], params['release_channel'] = pc
+            prod, chan, ver = pcv
+            params['product'] = prod
+            params['release_channel'] = chan
+            params['version'] = ver
             hdler = functools.partial(handler, bid)
             queries.append(Query(socorro.SuperSearch.URL,
                                  params=params,
                                  handler=hdler,
-                                 handlerdata=base_data[pc[0]][pc[1]]))
+                                 handlerdata=base_data[prod][chan]))
 
     return socorro.SuperSearch(queries=queries)
 

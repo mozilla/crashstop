@@ -48,20 +48,18 @@ def get_for_urls_sgns(hg_urls, signatures, products,
     towait, pushdates = dc.get_pushdates(chan_rev)
 
     products = utils.get_products() if not products else products
-    bids = {}
     res['versions'] = versions = {}
     dates = {}
     channels = utils.get_channels()
     all_versions = Buildid.get_versions(products, channels)
     for product in products:
-        bids[product] = d1 = {}
         all_v_prod = all_versions[product]
         for chan in channels:
             v = all_v_prod[chan]
             versions[(product, chan)] = v
-            dates[(product, chan)] = d1[chan] = sorted(v.keys())
+            dates[(product, chan)] = sorted(v.keys())
 
-    sgns_data = dc.get_sgns_data(channels, bids,
+    sgns_data = dc.get_sgns_data(channels, all_versions,
                                  signatures, products,
                                  date=date)
 
