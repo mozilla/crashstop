@@ -192,10 +192,8 @@ def get_sgns_data(channels, versions, signatures, products, date='today'):
     today = lmdutils.get_date_ymd(date)
     few_days_ago = today - relativedelta(days=config.get_limit())
     search_date = socorro.SuperSearch.get_search_date(few_days_ago)
-
     nbase = [0, 0]
     data = {}
-
     bids, all_bids, all_versions, doubloons = get_all_buildids(versions)
 
     for product in products:
@@ -207,11 +205,6 @@ def get_sgns_data(channels, versions, signatures, products, date='today'):
             for signature in signatures:
                 d2[signature] = b2
 
-    doubloons_queries = get_sgns_for_doubloons(doubloons,
-                                               signatures,
-                                               search_date,
-                                               data)
-
     limit = 80
 
     def handler(sgn, json, data):
@@ -219,17 +212,23 @@ def get_sgns_data(channels, versions, signatures, products, date='today'):
             return
         for facets in json['facets']['build_id']:
             bid = facets['term']
-            p, c, _ = all_bids[str(bid)]
-            bid = utils.get_build_date(bid)
+            prod, chan, ver = all_bids[str(bid)]
             _facets = facets['facets']
-            prod = _facets['product'][0]['term']
-            chan = _facets['release_channel'][0]['term']
-            if chan == 'aurora':
-                chan = 'beta'
-            dpc = data[prod][chan]
-            nums = dpc[sgn]
-            if p == prod and c == chan:
-                # we could have the same buildid in another channel
+            chans = set()
+            for c in _facets['release_channel']:
+                c = c['term']
+                if c == 'aurora':
+                    chans.add('beta')
+                else:
+                    chans.add(c)
+
+            if len(_facets['product']) != 1 or len(chans) != 1:
+                bid = str(bid)
+                doubloons[bid] = [(prod, chan, ver)]
+            else:
+                dpc = data[prod][chan]
+                nums = dpc[sgn]
+                bid = utils.get_build_date(bid)
                 if isinstance(nums, list):
                     dpc[sgn] = nums = {b: copy.copy(nbase) for b in dpc[sgn]}
                 if bid in nums:
@@ -247,8 +246,7 @@ def get_sgns_data(channels, versions, signatures, products, date='today'):
                    '_aggs.build_id': ['install_time',
                                       '_cardinality.install_time',
                                       'release_channel',
-                                      'product',
-                                      'version'],
+                                      'product'],
                    '_results_number': 0,
                    '_facets': 'signature',
                    '_facets_size': limit}
@@ -265,8 +263,10 @@ def get_sgns_data(channels, versions, signatures, products, date='today'):
                              handlerdata=data))
     socorro.SuperSearch(queries=queries).wait()
 
-    if doubloons_queries:
-        doubloons_queries.wait()
+    get_sgns_for_doubloons(doubloons,
+                           signatures,
+                           search_date,
+                           data)
 
     res = defaultdict(lambda: defaultdict(lambda: dict()))
     for p, i in data.items():
@@ -330,7 +330,7 @@ def get_sgns_for_doubloons(doubloons, signatures, search_date, base_data):
                                  handler=hdler,
                                  handlerdata=base_data[prod][chan]))
 
-    return socorro.SuperSearch(queries=queries)
+    socorro.SuperSearch(queries=queries).wait()
 
 
 def get_pushdates(chan_rev):
