@@ -46,8 +46,12 @@ def get_sumup(hg_urls, signatures):
     key = get_hash(key)
     bcache = get_client()
     for _ in [0, 1]:
-        if bcache.add(key, 0):
-            value = render_sumup(hg_urls, signatures)
+        if bcache.add(key, 0, time=30):
+            try:
+                value = render_sumup(hg_urls, signatures)
+            except Exception:
+                bcache.delete(key)
+                raise
             bcache.set(key, value,
                        time=config.get_cache_time(),
                        compress_level=9)
