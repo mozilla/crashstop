@@ -64,14 +64,13 @@ if (container) {
         const sumup = crashStop + "/sumup.html";
         const hpart = hgrevs.length != 0 ? (hgrevs.join("&") + "&") : "";
         const spart = signatures.join("&");
-        const crashStopLink = encodeURI(sumup + "?" + hpart + spart);
+        const crashStopLink = encodeURI(sumup + "?resize=1&" + hpart + spart);
         const iframe = document.createElement("iframe");
         const div = document.createElement("div");
         window.addEventListener("message", function (e) {
             if (e.origin == crashStop) {
                 const iframe = document.getElementById("crash-stop-iframe");
                 iframe.style.height = e.data + "px";
-
             }
         });
         iframe.setAttribute("src", crashStopLink);

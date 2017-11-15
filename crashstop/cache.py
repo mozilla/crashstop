@@ -3,12 +3,11 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from bmemcached import Client
-from flask import render_template
 import hashlib
 from itertools import chain
 import os
 import time
-from . import config, signatures, utils
+from . import config, signatures
 from .logger import logger
 
 
@@ -17,20 +16,14 @@ __CLIENT = Client(os.environ.get('MEMCACHEDCLOUD_SERVERS').split(','),
                   os.environ.get('MEMCACHEDCLOUD_PASSWORD'))
 
 
-def render_sumup(hgurls, sgns):
-    data = signatures.get_for_urls_sgns(hgurls, sgns, [], sumup=True)
-    data, links, versions = signatures.prepare_bug_for_html(data)
-
-    return render_template('sumup.html',
-                           data=data,
-                           links=links,
-                           versions=versions,
-                           products=utils.get_products(),
-                           enumerate=enumerate)
-
-
 def get_client():
     return __CLIENT
+
+
+def get_value(hgurls, sgns):
+    data = signatures.get_for_urls_sgns(hgurls, sgns, [], sumup=True)
+    data, links, versions = signatures.prepare_bug_for_html(data)
+    return (data, links, versions)
 
 
 def get_hash(key):
@@ -48,7 +41,7 @@ def get_sumup(hg_urls, signatures):
     for _ in [0, 1]:
         if bcache.add(key, 0, time=30):
             try:
-                value = render_sumup(hg_urls, signatures)
+                value = get_value(hg_urls, signatures)
             except Exception:
                 bcache.delete(key)
                 raise
@@ -72,7 +65,7 @@ def get_sumup(hg_urls, signatures):
     # so probably the memcached server is down
     logger.warning('Issue with memcached...')
 
-    return render_sumup(hg_urls, signatures)
+    return get_value(hg_urls, signatures)
 
 
 def clear():

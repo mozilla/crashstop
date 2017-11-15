@@ -7,11 +7,14 @@
   <head>
     <link rel="stylesheet" href="/stop.css">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://bugzilla.mozilla.org">
     <title>Crash data</title>
     <style>
+      {% if resize -%}
       * {
       font-size:90.2%
       }
+      {% endif -%}
     </style>
     <script type="text/javascript">
       document.addEventListener("DOMContentLoaded", function(event) {
@@ -24,21 +27,22 @@
       });
     </script>
   </head>
-  <body style="margin:0px;padding:0px;">
+  <body style="margin:0px;padding:0px;" id="crash-stop-body">
     <table border="1">
       {% if data -%}
       <tr>
         <td colspan="100">
-          <span class="without" style="float:left;width:33.33%;">without patch</span>
-          <span class="with" style="float:left;width:33.33%;">with patch</span>
-          <span class="lavender" style="float:left;width:33.34%;">no patch info</span>
+          <span class="without" style="float:left;width:25%;">without patch</span>
+          <span class="with" style="float:left;width:25%;">with patch</span>
+          <span class="lavender" style="float:left;width:25%;">no patch info</span>
+          <span style="float:left;width:25%;"><a href="{{ normal_url|e }}" target="_blank">normal size</a></span>
         </td>
       </tr>
       {% for prod, i in data.items() -%}
       {% for chan, j in i.items() -%}
       {% for sgn, info in j -%}
       <tr class="gray">
-        <td colspan="100" style="font-size:110%">
+        <td colspan="100" {% if resize -%}style="font-size:110%"{% endif -%}>
           <a href="{{ info['socorro_url'] }}">{{ sgn|e }}</a> in {{ prod }}&mdash;{{ chan }}
         </td>
       </tr>
