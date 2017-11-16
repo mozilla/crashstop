@@ -60,18 +60,10 @@ def crashdata():
 def sumup():
     sgns = request.args.getlist('s')
     hgurls = request.args.getlist('h')
-    resize = request.args.get('resize', '1')
-    resize = resize != '0'
     data, links, versions = cache.get_sumup(hgurls, sgns)
-    normal_url = '/sumup.html?resize=0&s=' + '&s='.join(sgns)
-    if hgurls:
-        normal_url += '&h=' + '&h='.join(hgurls)
-
     return render_template('sumup.html',
                            data=data,
                            links=links,
                            versions=versions,
                            products=utils.get_products(),
-                           resize=resize,
-                           normal_url=normal_url,
                            enumerate=enumerate)

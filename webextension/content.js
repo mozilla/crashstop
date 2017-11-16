@@ -59,12 +59,12 @@ if (container) {
                 }
             }
         });
-        //const crashStop = "https://localhost:5000";
-        const crashStop = "https://crash-stop.herokuapp.com";
+        const crashStop = "https://localhost:5000";
+        //const crashStop = "https://crash-stop.herokuapp.com";
         const sumup = crashStop + "/sumup.html";
         const hpart = hgrevs.length != 0 ? (hgrevs.join("&") + "&") : "";
         const spart = signatures.join("&");
-        const crashStopLink = encodeURI(sumup + "?resize=1&" + hpart + spart);
+        const crashStopLink = encodeURI(sumup + "?" + hpart + spart);
         const iframe = document.createElement("iframe");
         const div = document.createElement("div");
         window.addEventListener("message", function (e) {
@@ -75,7 +75,7 @@ if (container) {
         });
         iframe.setAttribute("src", crashStopLink);
         iframe.setAttribute("id", "crash-stop-iframe");
-        iframe.setAttribute("style", "display:block;top:0px;left:0px;width:100%;height:100%;border:0px;");
+        iframe.setAttribute("style", "display:block;width:100%;height:100%;border:0px;");
         iframe.setAttribute("scrolling", "no");
         div.setAttribute("style", "display:block;height:100%;");
         div.appendChild(iframe);

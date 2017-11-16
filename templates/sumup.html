@@ -9,11 +9,10 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <title>Crash data</title>
     <style>
-      {% if resize -%}
       * {
-      font-size:90.2%
+      font-family: "Fira Sans", "Open Sans", "Helvetica Neue", Arial, Helvetica, sans-serif;
+      font-size: 12px;
       }
-      {% endif -%}
     </style>
     <script type="text/javascript">
       document.addEventListener("DOMContentLoaded", function(event) {
@@ -26,36 +25,31 @@
       });
     </script>
   </head>
-  <body style="margin:0px;padding:0px;" id="crash-stop-body">
+  <body style="margin:0px;padding:0px;">
     <table border="1">
       {% if data -%}
       <tr>
         <td colspan="100">
-          <span class="without" style="float:left;width:25%;">without patch</span>
-          <span class="with" style="float:left;width:25%;">with patch</span>
-          <span class="lavender" style="float:left;width:25%;">no patch info</span>
-          <span style="float:left;width:25%;"><a href="{{ normal_url|e }}" target="_blank">normal size</a></span>
+          <span class="without" style="float:left;width:33.33%;">without patch</span>
+          <span class="with" style="float:left;width:33.33%;">with patch</span>
+          <span class="lavender" style="float:left;width:33.34%;">no patch info</span>
         </td>
       </tr>
       {% for prod, i in data.items() -%}
       {% for chan, j in i.items() -%}
       {% for sgn, info in j -%}
       <tr class="gray">
-        <td colspan="100" {% if resize -%}style="font-size:110%"{% endif -%}>
-          <a href="{{ info['socorro_url'] }}" {% if resize -%}target="blank_"{% endif -%}>{{ sgn|e }}</a> in {{ prod }}&mdash;{{ chan }}
+        <td colspan="100">
+          <a href="{{ info['socorro_url'] }}" target="blank_">{{ sgn|e }}</a> in {{ prod }}&mdash;{{ chan }}
         </td>
       </tr>
       <tr>
-        <th class="norm">build-id</th>
-        {% if info['position'] == -2 -%}
-        {% for pos, bid in enumerate(info['buildids']) %}<td class="lavender buildid"><a href="{{ links[(sgn, bid)] }}" {% if resize -%}target="blank_"{% endif -%}>{{ bid }}</a></td>{% endfor -%}
-        {% else -%}
-        {% for pos, bid in enumerate(info['buildids']) %}<td class="{% if pos <= info['position'] -%}without{% else -%}with{% endif -%}"><a href="{{ links[(sgn, bid)] }}" {% if resize -%}target="blank_"{% endif -%}>{{ bid }}</a></td>{% endfor -%}
-        {% endif -%}
-      </tr>
-      <tr>
         <th class="norm">version</th>
-        {% for bid in info['buildids'] %}<td>{{ versions[(prod, chan)][bid] }}</td>{% endfor -%}
+        {% if info['position'] == -2 -%}
+        {% for pos, bid in enumerate(info['buildids']) %}<td class="lavender buildid"><a title="{{ bid }}" href="{{ links[(sgn, bid)] }}" target="blank_">{{ versions[(prod, chan)][bid] }}</a></td>{% endfor -%}
+        {% else -%}
+        {% for pos, bid in enumerate(info['buildids']) %}<td class="{% if pos <= info['position'] -%}without{% else -%}with{% endif -%}"><a title="{{ bid }}" href="{{ links[(sgn, bid)] }}" target="blank_">{{ versions[(prod, chan)][bid] }}</a></td>{% endfor -%}
+        {% endif -%}
       </tr>
       <tr class="gray">
         <th class="norm">installs</th>
@@ -71,7 +65,7 @@
       {% else -%}
       <tr>
         <td>
-          No crash in the last builds \o/
+          No crash in the last builds \o/ (or something wrong happened...)
         </td>
       </tr>      
       {% endif -%}
