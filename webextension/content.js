@@ -59,8 +59,8 @@ if (container) {
                 }
             }
         });
-        const crashStop = "https://localhost:5000";
-        //const crashStop = "https://crash-stop.herokuapp.com";
+        //const crashStop = "https://localhost:5000";
+        const crashStop = "https://crash-stop.herokuapp.com";
         const sumup = crashStop + "/sumup.html";
         const hpart = hgrevs.length != 0 ? (hgrevs.join("&") + "&") : "";
         const spart = signatures.join("&");
