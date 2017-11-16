@@ -141,9 +141,12 @@ def prepare_bug_for_html(data):
     for prod, i in data.items():
         params['product'] = prod
         for chan, j in i.items():
+            version_pc = versions[(prod, chan)]
+            vers = list(set(version_pc.values()))
             c = ['beta', 'aurora'] if chan == 'beta' else chan
             params['release_channel'] = c
             for sgn, info in j.items():
+                params['version'] = vers
                 params['signature'] = utils.get_esearch_sgn(sgn)
                 url = socorro.SuperSearch.get_link(params)
                 url += '#facet-build_id'
@@ -154,6 +157,7 @@ def prepare_bug_for_html(data):
                 info['buildids'] = bids = []
                 for d in dates:
                     bid = utils.get_buildid(d)
+                    params['version'] = version_pc[bid]
                     bids.append(bid)
                     params['build_id'] = '=' + bid
                     url = socorro.SuperSearch.get_link(params)
