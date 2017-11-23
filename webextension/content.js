@@ -4,10 +4,10 @@
 
 "use strict";
 
-const selector = document.getElementById("cf_crash_signature_edit_container") ? "cf_crash_signature_edit_container" : "field-value-cf_crash_signature";
-const container = document.getElementById(selector);
+const container = document.getElementById("module-details-content");
 if (container) {
     const signatures = [];
+    const selector = "field-value-cf_crash_signature";
     document.querySelectorAll("#" + selector + " a").forEach(a => {
         if (a.href.startsWith("https://crash-stats.mozilla.com/signature")) {
             let s = a.innerText.trim();
@@ -23,7 +23,7 @@ if (container) {
         }
     });
     if (signatures.length != 0) {
-        const hgurlPattern = new RegExp("^http[s]?://hg\.mozilla\.org/(?:releases/)?mozilla-([^/]*)/rev/([0-9a-f]+)$");
+        const hgurlPattern = new RegExp("^http[s]?://hg\\.mozilla\\.org/(?:releases/)?mozilla-([^/]*)/rev/([0-9a-f]+)$");
         const repos = new Set(["central", "beta", "release"]);
         const hgrevs = [];
         let isFirst = false;
@@ -65,8 +65,13 @@ if (container) {
         const hpart = hgrevs.length != 0 ? (hgrevs.join("&") + "&") : "";
         const spart = signatures.join("&");
         const crashStopLink = encodeURI(sumup + "?" + hpart + spart);
+        const mainDiv = document.createElement("div");
+        mainDiv.setAttribute("class", "field");
+        const leftDiv = document.createElement("div");
+        leftDiv.setAttribute("class", "name");
+        leftDiv.innerText = "Crash Data:";
+        const rightDiv = document.createElement("div");
         const iframe = document.createElement("iframe");
-        const div = document.createElement("div");
         window.addEventListener("message", function (e) {
             if (e.origin == crashStop) {
                 const iframe = document.getElementById("crash-stop-iframe");
@@ -77,8 +82,10 @@ if (container) {
         iframe.setAttribute("id", "crash-stop-iframe");
         iframe.setAttribute("style", "display:block;width:100%;height:100%;border:0px;");
         iframe.setAttribute("scrolling", "no");
-        div.setAttribute("style", "display:block;height:100%;");
-        div.appendChild(iframe);
-        container.insertBefore(div, container.lastElementChild);
+        rightDiv.setAttribute("class", "value");
+        rightDiv.appendChild(iframe);
+        mainDiv.append(leftDiv);
+        mainDiv.append(rightDiv);
+        container.append(mainDiv);
     }
 }
