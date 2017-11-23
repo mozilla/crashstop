@@ -83,9 +83,8 @@ if (container) {
         iframe.setAttribute("style", "display:block;width:100%;height:100%;border:0px;");
         iframe.setAttribute("scrolling", "no");
         rightDiv.setAttribute("class", "value");
-        rightDiv.appendChild(iframe);
-        mainDiv.append(leftDiv);
-        mainDiv.append(rightDiv);
+        rightDiv.append(iframe);
+        mainDiv.append(leftDiv, rightDiv);
         container.append(mainDiv);
     }
 }
