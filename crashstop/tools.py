@@ -38,6 +38,9 @@ def check_patch(numbers, pushdate, bids, ratio, min_value):
     # pos is the position of the first build with the patch
     pos = bisect_left(bids, pushdate)
 
+    if pos == len(bids):
+        return False
+
     if pos == 0:
         # all the builds contain the patch
         return bool(np.mean(numbers) < min_value)
@@ -86,7 +89,7 @@ def compute_success(data, patches, bids, ratios):
                     if not pushdate:
                         continue
 
-                    if bids_chan[0] > pushdate or bids_chan[-1] < pushdate:
+                    if bids_chan[0] > pushdate:
                         continue
 
                     success = check_patch(numbers, pushdate,

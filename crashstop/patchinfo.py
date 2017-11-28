@@ -63,7 +63,7 @@ def filter_land(land, date_ranges):
     if land:
         for chan, pushdate in land.items():
             md, Md = date_ranges[chan]
-            if md <= pushdate <= Md:
+            if md <= pushdate:
                 res[chan] = pushdate
     return res
 

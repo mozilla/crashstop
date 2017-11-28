@@ -2,17 +2,46 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from libmozdata import utils as lmdutils
+from collections import defaultdict
 import sqlalchemy.dialects.postgresql as pg
+from sqlalchemy import and_, or_
 import pytz
 import six
-from . import signatures, utils
+from . import utils
 from . import db, app
 from .logger import logger
 
 
 CHANNEL_TYPE = db.Enum(*utils.get_channels(), name='CHANNEL_TYPE')
 PRODUCT_TYPE = db.Enum(*utils.get_products(), name='PRODUCT_TYPE')
+
+
+class Lastdate(db.Model):
+    __tablename__ = 'lastdate'
+
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.DateTime(timezone=True))
+
+    def __init__(self, date):
+        self.id = 0
+        self.date = date
+
+    @staticmethod
+    def set(date):
+        last = db.session.query(Lastdate).first()
+        if last:
+            last.date = date
+        else:
+            last = Lastdate(date)
+        db.session.add(last)
+        db.session.commit()
+
+    @staticmethod
+    def get():
+        last = db.session.query(Lastdate).first()
+        if last:
+            return last.date.astimezone(pytz.utc)
+        return None
 
 
 class Buildid(db.Model):
@@ -31,13 +60,28 @@ class Buildid(db.Model):
 
     @staticmethod
     def add_buildids(data, commit=True):
+        if not data:
+            return
+
+        qs = db.session.query(Buildid)
+        here = defaultdict(lambda: defaultdict(lambda: set()))
+        for q in qs:
+            here[q.product][q.channel].add((q.buildid, q.version))
         for prod, i in data.items():
+            here_p = here[prod]
             for chan, j in i.items():
-                q = db.session.query(Buildid).filter(Buildid.product == prod,
-                                                     Buildid.channel == chan)
-                q.delete()
-                for d, v in j:
-                    db.session.add(Buildid(prod, chan, d, v))
+                here_pc = here_p[chan]
+                j = set(j)
+                toadd = j - here_pc
+                torm = [x for x, _ in here_pc - j]
+                if torm:
+                    q = db.session.query(Buildid)
+                    q = q.filter(Buildid.product == prod,
+                                 Buildid.channel == chan,
+                                 Buildid.buildid.in_(torm))
+                    q.delete(synchronize_session='fetch')
+                for b, v in toadd:
+                    db.session.add(Buildid(prod, chan, b, v))
         if commit:
             db.session.commit()
 
@@ -56,6 +100,30 @@ class Buildid(db.Model):
             d = res[bid.product][bid.channel]
             buildid = bid.buildid.astimezone(pytz.utc)
             d[buildid] = bid.version
+        return res
+
+    @staticmethod
+    def get_max():
+        q = db.session.query(db.func.max(Buildid.buildid)).first()
+        if q and q[0]:
+            return q[0].astimezone(pytz.utc)
+        return None
+
+    @staticmethod
+    def get_buildids(products=utils.get_products(),
+                     channels=utils.get_channels()):
+        if isinstance(products, six.string_types):
+            products = [products]
+        if isinstance(channels, six.string_types):
+            channels = [channels]
+
+        qs = db.session.query(Buildid)
+        qs = qs.filter(Buildid.product.in_(products),
+                       Buildid.channel.in_(channels)).order_by(Buildid.buildid)
+        res = defaultdict(lambda: defaultdict(lambda: list()))
+        for q in qs:
+            res[q.product][q.channel].append((q.buildid.astimezone(pytz.utc),
+                                              q.version))
         return res
 
 
@@ -91,8 +159,8 @@ class Signatures(db.Model):
     __tablename__ = 'signatures'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    product = db.Column(PRODUCT_TYPE, primary_key=True)
-    channel = db.Column(CHANNEL_TYPE, primary_key=True)
+    product = db.Column(PRODUCT_TYPE)
+    channel = db.Column(CHANNEL_TYPE)
     signature = db.Column(db.String(512))
     bugid = db.Column(db.Integer, default=0)
     raw = db.Column(pg.ARRAY(db.Integer))
@@ -112,6 +180,26 @@ class Signatures(db.Model):
         self.success = success
 
     @staticmethod
+    def clean(date_ranges):
+        ands = []
+        for chan, rg in date_ranges.items():
+            md, Md = rg
+            ands.append(and_(Signatures.channel == chan,
+                             Signatures.pushdate < md))
+        if ands:
+            q = db.session.query(Signatures).filter(or_(*ands))
+            q.delete()
+            db.session.commit()
+
+    @staticmethod
+    def get_pushdates():
+        res = defaultdict(lambda: defaultdict(lambda: dict()))
+        qs = db.session.query(Signatures)
+        for q in qs:
+            res[q.signature][q.bugid][q.channel] = q.pushdate
+        return res
+
+    @staticmethod
     def put_data(data, bids, ratios):
         logger.info('Put signatures in db: started.')
         GlobalRatio.put_data(ratios, commit=False)
@@ -119,9 +207,6 @@ class Signatures(db.Model):
 
         for product, i in data.items():
             for chan, j in i.items():
-                db.session.query(Signatures).filter_by(product=product,
-                                                       channel=chan).delete()
-                db.session.commit()
                 for sgn, infos in j.items():
                     for info in infos:
                         bugid = info['bugid']
@@ -129,30 +214,57 @@ class Signatures(db.Model):
                         pushdate = info['pushdate']
                         success = info['success']
                         raw, installs = utils.get_raw_installs(numbers)
-                        s = Signatures(product, chan, sgn, bugid, raw,
-                                       installs, pushdate, success)
-                        db.session.add(s)
+                        s = db.session.query(Signatures)
+                        s = s.filter_by(product=product,
+                                        channel=chan,
+                                        signature=sgn,
+                                        bugid=bugid,
+                                        pushdate=pushdate).first()
+                        if s:
+                            added = False
+                            if s.raw != raw:
+                                s.raw = raw
+                                added = True
+                            if s.installs != installs:
+                                s.installs = installs
+                                added = True
+                            if s.success != success:
+                                s.success = success
+                                added = True
+                            if added:
+                                db.session.add(s)
+                        else:
+                            s = Signatures(product, chan, sgn, bugid, raw,
+                                           installs, pushdate, success)
+                            db.session.add(s)
                     db.session.commit()
 
         logger.info('Put signatures in db: finished.')
 
-    # TODO: gere pc
     @staticmethod
     def get_bypc(product, channel, filt):
+        versions = Buildid.get_versions(product, channel)
+        versions = versions[product][channel]
+        vs = sorted(versions.keys())
+        max_date = vs[-1]
+        min_date = vs[0]
+
         query = db.session.query(Signatures)
         if filt == 'all':
-            sgns = query.filter_by(product=product,
-                                   channel=channel)
+            sgns = query.filter(Signatures.product == product,
+                                Signatures.channel == channel,
+                                Signatures.pushdate <= max_date,
+                                Signatures.pushdate >= min_date)
         else:
-            sgns = query.filter_by(product=product,
-                                   channel=channel,
-                                   success=filt == 'successful')
-
-        versions = Buildid.get_versions(product, channel)
+            sgns = query.filter(Signatures.product == product,
+                                Signatures.channel == channel,
+                                Signatures.pushdate <= max_date,
+                                Signatures.pushdate >= min_date,
+                                Signatures.success.is_(filt == 'successful'))
 
         d = {}
         res = {'signatures': d,
-               'versions': versions[product][channel]}
+               'versions': versions}
 
         for sgn in sgns:
             d[sgn.signature] = {'bugid': sgn.bugid,
@@ -204,25 +316,12 @@ class Signatures(db.Model):
         return res
 
 
-def put_data(date='today'):
-    logger.info('Get data: started.')
-    data, bids, ratios = signatures.get(date=date)
-    Signatures.put_data(data, bids, ratios)
-    logger.info('Get data: finished.')
+def clear():
+    db.drop_all()
+    db.session.commit()
 
 
-def update(date='today'):
-    d = lmdutils.get_date(date)
-    logger.info('Update data for {}: started.'.format(d))
-    put_data(date=date)
-    logger.info('Update data for {}: finished.'.format(d))
-
-
-def create(date='today'):
+def create():
     engine = db.get_engine(app)
     if not engine.dialect.has_table(engine, 'buildid'):
-        d = lmdutils.get_date(date)
-        logger.info('Create data for {}: started.'.format(d))
         db.create_all()
-        put_data(date=date)
-        logger.info('Create data for {}: finished.'.format(d))

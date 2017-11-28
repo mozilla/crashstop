@@ -3,24 +3,64 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from collections import OrderedDict
+from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from libmozdata import socorro
 from libmozdata import utils as lmdutils
+import pytz
 from . import datacollector as dc
-from . import utils, tools, config, patchinfo
+from . import config, models, patchinfo, tools, utils
 from .const import RAW, INSTALLS
+from .logger import logger
+
+
+def update(date='today'):
+    d = lmdutils.get_date(date)
+    logger.info('Update data for {}: started.'.format(d))
+    data, bids, ratios, ranges, last_date = get(date=date)
+    models.Signatures.put_data(data, bids, ratios)
+    models.Signatures.clean(ranges)
+    models.Lastdate.set(last_date)
+    logger.info('Update data for {}: finished.'.format(d))
+
+
+def update_patches(start_date, end_date, date_ranges):
+    last_date = models.Lastdate.get()
+    old_patches = models.Signatures.get_pushdates()
+    if last_date:
+        start_date = last_date
+        end_date = pytz.utc.localize(datetime.utcnow())
+    patches = patchinfo.get(start_date, end_date, date_ranges)
+    for s, i in old_patches.items():
+        if s not in patches:
+            patches[s] = dict(i)
+        else:
+            patches_s = patches[s]
+            for b, j in i.items():
+                if b not in patches_s:
+                    patches_s[b] = j
+                else:
+                    patches_sb = patches_s[b]
+                    for c, l in j.items():
+                        if c not in patches_sb:
+                            patches_sb[c] = l
+                        else:
+                            patches_sb[c] += l
+
+    return patches, end_date
 
 
 def get(date='today',
         products=utils.get_products(),
         channels=utils.get_channels()):
     today = lmdutils.get_date_ymd(date)
+    tomorrow = today + relativedelta(days=1)
     few_days_ago = today - relativedelta(days=config.get_limit())
-    search_date = socorro.SuperSearch.get_search_date(few_days_ago)
+    search_date = socorro.SuperSearch.get_search_date(few_days_ago, tomorrow)
 
     bids = dc.get_buildids(search_date, channels, products)
     start_date, end_date, date_ranges = utils.get_dates(bids)
-    patches = patchinfo.get(start_date, end_date, date_ranges)
+    patches, last_date = update_patches(start_date, end_date, date_ranges)
 
     signatures = set(patches.keys())
     res, ratios = dc.get_sgns_by_buildid(signatures, channels,
@@ -28,13 +68,11 @@ def get(date='today',
                                          bids)
     res = tools.compute_success(res, patches, bids, ratios)
 
-    return res, bids, ratios
+    return res, bids, ratios, date_ranges, last_date
 
 
 def get_for_urls_sgns(hg_urls, signatures, products,
                       sumup=False, date='today'):
-    from .models import Buildid
-
     data = {}
     res = {'data': data,
            'versions': {}}
@@ -51,7 +89,7 @@ def get_for_urls_sgns(hg_urls, signatures, products,
     res['versions'] = versions = {}
     dates = {}
     channels = utils.get_channels()
-    all_versions = Buildid.get_versions(products, channels)
+    all_versions = models.Buildid.get_versions(products, channels)
     for product in products:
         all_v_prod = all_versions[product]
         for chan in channels:

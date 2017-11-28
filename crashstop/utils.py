@@ -211,6 +211,7 @@ def get_dates(bids):
 
     for i in bids.values():
         for chan, j in i.items():
+            # TODO: handle the case where j is empty...
             md, Md = j[0][0], j[-1][0]
             if md < start_date:
                 start_date = md
@@ -237,3 +238,14 @@ def get_base_list(bids):
         for c in i.keys():
             d[c] = [copy.copy(nbase) for _ in range(len(bids_prod[c]))]
     return base
+
+
+def equals_bids(b1, b2):
+    if not b1 or not b2:
+        return False
+
+    for p, i in b1.items():
+        for c, j in b2.items():
+            if j != b2[p][c]:
+                return False
+    return True
