@@ -46,7 +46,8 @@ def get_buildids(search_date, channels, products):
             count = facets['count']
             if count >= threshold:
                 version = facets['facets']['version'][0]['term']
-                if chan != 'beta' or not version.endswith('a2'):
+                if chan != 'beta' or not (version.endswith('a2') or
+                                          version.endswith('b0')):
                     buildid = facets['term']
                     data.append((buildid, version, count))
 
