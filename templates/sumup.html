@@ -8,12 +8,6 @@
     <link rel="stylesheet" href="/stop.css">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <title>Crash data</title>
-    <style>
-      * {
-      font-family: "Fira Sans", "Open Sans", "Helvetica Neue", Arial, Helvetica, sans-serif;
-      font-size: 12px;
-      }
-    </style>
     <script type="text/javascript">
       document.addEventListener("DOMContentLoaded", function(event) {
           const body = document.body;
@@ -25,16 +19,14 @@
       });
     </script>
   </head>
-  <body style="margin:0px;padding:0px;">
-    <table border="1">
-      {% if data -%}
-      <tr>
-        <td colspan="100">
-          <span class="without" style="float:left;width:33.33%;">without patch</span>
-          <span class="with" style="float:left;width:33.33%;">with patch</span>
-          <span class="lavender" style="float:left;width:33.34%;">no patch info</span>
-        </td>
-      </tr>
+  <body>
+    {% if data -%}
+    <div class="captions">
+      <span class="without">without patch</span>
+      <span class="with">with patch</span>
+      <span class="lavender">no patch info</span>
+    </div>
+    <table>
       {% for prod, i in data.items() -%}
       {% for chan, j in i.items() -%}
       {% for sgn, info in j -%}
@@ -62,13 +54,9 @@
       {% endfor -%}
       {% endfor -%}
       {% endfor -%}
-      {% else -%}
-      <tr>
-        <td>
-          No crash in the last builds \o/ (or something wrong happened...)
-        </td>
-      </tr>      
-      {% endif -%}
     </table>
+      {% else -%}
+      <p>No crash in the last builds \o/ (or something wrong happened...)</p>
+      {% endif -%}
   </body>
 </html>
