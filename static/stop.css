@@ -6,8 +6,6 @@ body {
     padding: 0;
 }
 
-/* links */
-
 a {
     text-decoration: none;
     color: #0095dd;
@@ -19,66 +17,71 @@ a:hover {
 }
 
 /* generic table styles */
-
 table {
-    border-collapse:collapse;
-    margin-top:5px;
+    border-collapse: collapse;
+    border: 1px solid #cbcbcb;
+}
+
+th {
+    border: 1px solid #cbcbcb;
+    background-color: #f0f0f0;
+    color:#666;
+}
+
+tr th[colspan="100"] {
+    border-spacing: 10px;
 }
 
 td, th {
-    border:1px solid black;
+    border-right: 1px solid #cbcbcb;
     text-align: center;
+    padding: 4px 2px;
     padding: 4px;
 }
 
-/* crash-stop table styles */
-td.num {
-    font-weight:bold;
+tr:nth-child(odd) {
+    background-color: #EDF5FF;
 }
 
-td.with {
-    font-size:80%;
-}
-
-td.without {
-    font-size:80%;
-}
-
+td.with,
+td.without,
 td.buildid {
-    font-size:80%;
+    font-size: 90%;
 }
 
 th.norm {
-    font-weight:normal;
-    text-align:left;
+    font-weight: normal;
+    text-align: left;
 }
 
 /* captions and colors */
-div.captions {
-  display:inline-flex;
-  justify-content:center;
-  flex-direction: row;
-  margin-bottom: 0.5em;
+caption {
+    margin-bottom: 1em;
+    column-span: all;
+    columns: 3;
+    column-gap: 0.5em;
+    color:#666;
 }
-div.captions span {
-   text-align: center;
-   padding: 0 1em;
-    width:10em;
+
+caption span {
+    text-align: center;
+    display:block;
 }
+
 .with {
-    background-color:yellowgreen;
+    background-color: lightgreen;
 }
 
 .without {
-    background-color:moccasin;
+    background-color: bisque;
 }
 
 .gray {
-    background-color: #edebe4;
+    background-color: #f0f0f0;
 }
 
 .lavender {
-    background-color:lavenderblush;
+    background-color: FloralWhite;
 }
 
 nav {
