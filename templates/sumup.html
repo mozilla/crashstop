@@ -21,12 +21,12 @@
   </head>
   <body>
     {% if data -%}
-    <div class="captions">
-      <span class="lavender">No patch info</span>
-      <span class="without">Without patch</span>
-      <span class="with">With patch</span>
-    </div>
     <table>
+      <caption>
+        <span class="lavender">No patch info</span>
+        <span class="without">Without patch</span>
+        <span class="with">With patch</span>
+      </caption>
       {% for prod, i in data.items() -%}
       {% for chan, j in i.items() -%}
       {% for sgn, info in j -%}
