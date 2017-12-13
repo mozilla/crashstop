@@ -8,12 +8,6 @@
     <link rel="stylesheet" href="/stop.css">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <title>Crash data</title>
-    <style>
-      * {
-      font-family: "Fira Sans", "Open Sans", "Helvetica Neue", Arial, Helvetica, sans-serif;
-      font-size: 12px;
-      }
-    </style>
     <script type="text/javascript">
       document.addEventListener("DOMContentLoaded", function(event) {
           const body = document.body;
@@ -25,26 +19,24 @@
       });
     </script>
   </head>
-  <body style="margin:0px;padding:0px;">
-    <table border="1">
-      {% if data -%}
-      <tr>
-        <td colspan="100">
-          <span class="without" style="float:left;width:33.33%;">without patch</span>
-          <span class="with" style="float:left;width:33.33%;">with patch</span>
-          <span class="lavender" style="float:left;width:33.34%;">no patch info</span>
-        </td>
-      </tr>
+  <body>
+    {% if data -%}
+    <table>
+      <caption>
+        <span class="lavender">No patch info</span>
+        <span class="without">Without patch</span>
+        <span class="with">With patch</span>
+      </caption>
       {% for prod, i in data.items() -%}
       {% for chan, j in i.items() -%}
       {% for sgn, info in j -%}
-      <tr class="gray">
-        <td colspan="100">
-          <a href="{{ info['socorro_url'] }}" target="blank_">{{ sgn|e }}</a> in {{ prod }}&mdash;{{ chan }}
-        </td>
+      <tr>
+        <th colspan="100">
+          <a href="{{ info['socorro_url'] }}" target="blank_">{{ sgn|e }}</a> in {{ prod }} &mdash; {{ chan }}
+        </th>
       </tr>
       <tr>
-        <th class="norm">version</th>
+        <th class="norm">Version</th>
         {% if info['position'] == -2 -%}
         {% for pos, bid in enumerate(info['buildids']) %}<td class="lavender buildid"><a title="{{ bid }}" href="{{ links[(sgn, bid)] }}" target="blank_">{{ versions[(prod, chan)][bid] }}</a></td>{% endfor -%}
         {% else -%}
@@ -52,23 +44,19 @@
         {% endif -%}
       </tr>
       <tr class="gray">
-        <th class="norm">installs</th>
+        <th class="norm">Installs</th>
         {% for n in info['installs'] %}<td class="num">{{ n }}</td>{% endfor -%}
       </tr>
       <tr>
-        <th class="norm">crashes</th>
+        <th class="norm">Crashes</th>
         {% for n in info['raw'] %}<td class="num">{{ n }}</td>{% endfor -%}
       </tr>
       {% endfor -%}
       {% endfor -%}
       {% endfor -%}
-      {% else -%}
-      <tr>
-        <td>
-          No crash in the last builds \o/ (or something wrong happened...)
-        </td>
-      </tr>      
-      {% endif -%}
     </table>
+      {% else -%}
+      <p>No crash in the last builds \o/ (or something wrong happened...)</p>
+      {% endif -%}
   </body>
 </html>
