@@ -337,9 +337,10 @@ def get_sgns_for_doubloons(doubloons, signatures, search_date, base_data):
 def get_pushdates(chan_rev):
 
     def handler(json, data):
-        pushdate = json['pushdate'][0]
-        pushdate = lmdutils.as_utc(datetime.utcfromtimestamp(pushdate))
-        data.append(pushdate)
+        if not json['backedoutby']:
+            pushdate = json['pushdate'][0]
+            pushdate = lmdutils.as_utc(datetime.utcfromtimestamp(pushdate))
+            data.append(pushdate)
 
     res = []
     data = {}
