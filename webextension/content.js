@@ -4,10 +4,15 @@
 
 "use strict";
 
-const container = document.getElementById("module-details-content");
+let oldWay = false;
+let container = document.getElementById("module-details-content");
+if (!container) {
+    container = document.getElementById("field_label_cf_crash_signature");
+    oldWay = true;
+}
 if (container) {
     const signatures = [];
-    const selector = "field-value-cf_crash_signature";
+    const selector = oldWay ? "cf_crash_signature_edit_container" : "field-value-cf_crash_signature";
     document.querySelectorAll("#" + selector + " a").forEach(a => {
         if (a.href.startsWith("https://crash-stats.mozilla.com/signature")) {
             let s = a.innerText.trim();
@@ -28,7 +33,8 @@ if (container) {
         const hgrevs = [];
         let isFirst = false;
         let currentCommentId = "";
-        document.querySelectorAll(".comment-text > a").forEach(a => {
+        const aSelector = oldWay ? ".bz_comment_text > a" : ".comment-text > a";
+        document.querySelectorAll(aSelector).forEach(a => {
             const parentId = a.parentNode.attributes.id;
             if (parentId !== currentCommentId) {
                 // we're in a new comment
@@ -37,7 +43,7 @@ if (container) {
             }
             const prev = a.previousSibling;
             if (prev == null || (prev.previousSibling == null && !prev.textContent.trim())) {
-                // the first element in the comment is the likn (no text before)
+                // the first element in the comment is the link (no text before)
                 isFirst = true;
             }
             if (isFirst) {
@@ -65,12 +71,6 @@ if (container) {
         const hpart = hgrevs.length != 0 ? (hgrevs.join("&") + "&") : "";
         const spart = signatures.join("&");
         const crashStopLink = encodeURI(sumup + "?" + hpart + spart);
-        const mainDiv = document.createElement("div");
-        mainDiv.setAttribute("class", "field");
-        const leftDiv = document.createElement("div");
-        leftDiv.setAttribute("class", "name");
-        leftDiv.innerText = "Crash Data:";
-        const rightDiv = document.createElement("div");
         const iframe = document.createElement("iframe");
         window.addEventListener("message", function (e) {
             if (e.origin == crashStop) {
@@ -82,9 +82,35 @@ if (container) {
         iframe.setAttribute("id", "crash-stop-iframe");
         iframe.setAttribute("style", "display:block;width:100%;height:100%;border:0px;");
         iframe.setAttribute("scrolling", "no");
+        const rightDiv = document.createElement("div");
         rightDiv.setAttribute("class", "value");
         rightDiv.append(iframe);
-        mainDiv.append(leftDiv, rightDiv);
-        container.append(mainDiv);
+        if (oldWay) {
+            const tr = document.createElement("tr");
+            const th = document.createElement("th");
+            th.setAttribute("class", "field_label");
+            tr.append(th);
+            const a = document.createElement("a");
+            a.setAttribute("class", "field_help_link");
+            a.setAttribute("title", "Crash data from Bugzilla Crash Stop addon");
+            a.setAttribute("href", "https://addons.mozilla.org/en-US/firefox/addon/bugzilla-crash-stop/");
+            a.innerText = "Crash data:";
+            th.append(a);
+            const td = document.createElement("td");
+            td.setAttribute("class", "field_value");
+            td.setAttribute("colspan", 2);
+            td.append(rightDiv);
+            tr.append(td);
+            container = container.parentNode;
+            container.parentNode.insertBefore(tr, container.nextSibling);
+        } else {
+            const mainDiv = document.createElement("div");
+            mainDiv.setAttribute("class", "field");
+            const leftDiv = document.createElement("div");
+            leftDiv.setAttribute("class", "name");
+            leftDiv.innerText = "Crash Data:";
+            mainDiv.append(leftDiv, rightDiv);
+            container.append(mainDiv);
+        }
     }
 }
