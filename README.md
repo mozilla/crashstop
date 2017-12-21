@@ -1,5 +1,8 @@
 # crashstop
-> Library to display crash data from Socorro by build-id.
+
+Library to display crash data from Socorro by build-id.
+
+Available as a WebExtension on https://addons.mozilla.org/firefox/addon/bugzilla-crash-stop/
 
 
 ## Setup
