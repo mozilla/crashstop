@@ -15,6 +15,24 @@ from .const import RAW, INSTALLS
 from .logger import logger
 
 
+def get_corrected_versions(data):
+    # if we've 46, 48, 57, 58 then just return 57, 58
+    res = {}
+    for chan, info in data.items():
+        majors = defaultdict(lambda: list())
+        for i in info:
+            majors[utils.get_major(i[1])].append(i)
+        M = max(majors.keys())
+        m = M
+        while m in majors:
+            m -= 1
+        m += 1
+        res[chan] = L = []
+        for i in range(m, M + 1):
+            L += majors[i]
+    return res
+
+
 def remove_dup_versions(data):
     res = {}
     if 'nightly' in data:
@@ -33,6 +51,9 @@ def remove_dup_versions(data):
             for v, i in versions.items():
                 bid, _ = i
                 res[chan].append((bid, v))
+
+    res = get_corrected_versions(res)
+
     return res
 
 
@@ -40,7 +61,7 @@ def get_buildids(search_date, channels, products):
     data = {p: {c: list() for c in channels} for p in products}
 
     def handler(chan, threshold, json, data):
-        if json['errors'] or not json['facets']['build_id']:
+        if not json['facets']['build_id']:
             return
         for facets in json['facets']['build_id']:
             count = facets['count']
@@ -105,7 +126,7 @@ def get_sgns_by_buildid(signatures, channels, products, search_date, bids):
                                                                channels))
 
     def handler(base, index, json, data):
-        if json['errors'] or not json['facets']['signature']:
+        if not json['facets']['signature']:
             return
         for facets in json['facets']['signature']:
             sgn = facets['term']
@@ -209,7 +230,7 @@ def get_sgns_data(channels, versions, signatures, products, date='today'):
     limit = 80
 
     def handler(sgn, json, data):
-        if json['errors'] or not json['facets']['build_id']:
+        if not json['facets']['build_id']:
             return
         for facets in json['facets']['build_id']:
             bid = facets['term']
@@ -287,7 +308,7 @@ def get_sgns_for_doubloons(doubloons, signatures, search_date, base_data):
     nbase = [0, 0]
 
     def handler(bid, json, data):
-        if json['errors'] or not json['facets']['signature']:
+        if not json['facets']['signature']:
             return
         for facets in json['facets']['signature']:
             sgn = facets['term']

@@ -38,6 +38,13 @@ def get_channels():
     return config.get_channels()
 
 
+def get_major(v):
+    v = v.split('.')
+    if len(v) >= 2:
+        return int(v[0])
+    return -1
+
+
 def get_raw_installs(numbers):
     N = len(numbers)
     raw = [0] * N

@@ -51,6 +51,11 @@ def github_icon():
     return send_from_directory('../static', 'GitHub-Mark-32px.png')
 
 
+@app.route('/warning-icon.png')
+def warning_icon():
+    return send_from_directory('../static', 'warning-icon.png')
+
+
 @app.route('/stop.js')
 def stop_js():
     return send_from_directory('../static', 'stop.js')
