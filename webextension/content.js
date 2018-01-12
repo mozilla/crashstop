@@ -93,7 +93,7 @@ if (container) {
             const a = document.createElement("a");
             a.setAttribute("class", "field_help_link");
             a.setAttribute("title", "Crash data from Bugzilla Crash Stop addon");
-            a.setAttribute("href", "https://addons.mozilla.org/en-US/firefox/addon/bugzilla-crash-stop/");
+            a.setAttribute("href", "https://addons.mozilla.org/firefox/addon/bugzilla-crash-stop/");
             a.innerText = "Crash data:";
             th.append(a);
             const td = document.createElement("td");
