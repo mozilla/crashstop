@@ -55,12 +55,19 @@ th.norm {
 }
 
 /* captions and colors */
-caption {
+.legend {
     margin-bottom: 1em;
     column-span: all;
     columns: 3;
     column-gap: 0.5em;
     color:#666;
+}
+
+.info {
+    columns: 1;
+    background-color: lightblue;
+    margin-bottom: 1em;
+    margin-top: -0.5em;
 }
 
 caption span {

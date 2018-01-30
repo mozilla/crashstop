@@ -28,6 +28,20 @@ if (container) {
         }
     });
     if (signatures.length != 0) {
+        const extraSocorroArgs = []
+        const baseUrl = "https://crash-stats.mozilla.com/search/";
+        const sayNo = new Set(["_columns", "_facets", "_facets_size", "_sort", "_results_number", "date", "channel", "product", "version", "build_id"]);
+        const urlSelector = oldWay ? "bz_url_edit_container" : "field-value-bug_file_loc";
+        document.querySelectorAll("#" + urlSelector + " a").forEach(a => {
+            if (a.href.startsWith(baseUrl)) {
+                const params = new URLSearchParams(a.href.slice(baseUrl.length));
+                for (let p of params) {
+                    if (!sayNo.has(p[0])) {
+                        extraSocorroArgs.push(p[0] + "=" + p[1]);
+                    }
+                }
+            }
+        });
         const hgurlPattern = new RegExp("^http[s]?://hg\\.mozilla\\.org/(?:releases/)?mozilla-([^/]*)/rev/([0-9a-f]+)$");
         const repos = new Set(["central", "beta", "release"]);
         const hgrevs = [];
@@ -69,8 +83,9 @@ if (container) {
         const crashStop = "https://crash-stop.herokuapp.com";
         const sumup = crashStop + "/sumup.html";
         const hpart = hgrevs.length != 0 ? (hgrevs.join("&") + "&") : "";
-        const spart = signatures.join("&");
-        const crashStopLink = encodeURI(sumup + "?" + hpart + spart);
+        const spart = signatures.join("&") + "&";
+        const extra = extraSocorroArgs.join("&");
+        const crashStopLink = encodeURI(sumup + "?" + hpart + spart + extra);
         const iframe = document.createElement("iframe");
         window.addEventListener("message", function (e) {
             if (e.origin == crashStop) {

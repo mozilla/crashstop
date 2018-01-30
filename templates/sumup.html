@@ -5,7 +5,7 @@
 <!DOCTYPE html>
 <html lang="en-us">
   <head>
-    <link rel="stylesheet" href="/stop.css?v=2">
+    <link rel="stylesheet" href="/stop.css?v=3">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <title>Crash data</title>
     <script type="text/javascript">
@@ -24,9 +24,16 @@
     {% if data -%}
     <table>
       <caption>
-        <span class="lavender">No patch info</span>
-        <span class="without">Without patch</span>
-        <span class="with">With patch</span>
+        <div class="legend">
+          <span class="lavender">No patch info</span>
+          <span class="without">Without patch</span>
+          <span class="with">With patch</span>
+        </div>
+        {% if has_extra %}
+        <div class="info">
+          <span>Socorro queries have been filtered in using terms from URL field.</span>
+        </div>
+        {% endif %}
       </caption>
       {% for prod, i in data.items() -%}
       {% for chan, j in i.items() -%}
@@ -56,8 +63,8 @@
       {% endfor -%}
       {% endfor -%}
     </table>
-      {% else -%}
-      <p>No crash in the last builds \o/ (or something wrong happened...)</p>
-      {% endif -%}
+    {% else -%}
+    <p>No crash in the last builds \o/ (or something wrong happened...)</p>
+    {% endif -%}
   </body>
 </html>

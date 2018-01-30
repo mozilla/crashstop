@@ -5,3 +5,6 @@ mozdata.ini
 bugzilla-crash-stop.zip
 .*
 test.py
+server.crt
+server.csr
+server.key

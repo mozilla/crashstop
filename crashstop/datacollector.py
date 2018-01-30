@@ -204,13 +204,13 @@ def get_all_buildids(versions):
                 else:
                     bids[bid] = (p, c, v)
 
-    all_versions = {v for _,  _, v in bids.values()}
+    all_versions = {v for _, _, v in bids.values()}
     all_versions = list(all_versions)
 
     return all_bids, bids, all_versions, doubloons
 
 
-def get_sgns_data(channels, versions, signatures, products, date='today'):
+def get_sgns_data(channels, versions, signatures, extra, products, date='today'):
     today = lmdutils.get_date_ymd(date)
     few_days_ago = today - relativedelta(days=config.get_limit())
     search_date = socorro.SuperSearch.get_search_date(few_days_ago)
@@ -272,6 +272,7 @@ def get_sgns_data(channels, versions, signatures, products, date='today'):
                    '_results_number': 0,
                    '_facets': 'signature',
                    '_facets_size': limit}
+    utils.update_params(base_params, extra)
 
     queries = []
 
@@ -287,6 +288,7 @@ def get_sgns_data(channels, versions, signatures, products, date='today'):
 
     get_sgns_for_doubloons(doubloons,
                            signatures,
+                           extra,
                            search_date,
                            data)
 
@@ -300,7 +302,7 @@ def get_sgns_data(channels, versions, signatures, products, date='today'):
     return res
 
 
-def get_sgns_for_doubloons(doubloons, signatures, search_date, base_data):
+def get_sgns_for_doubloons(doubloons, signatures, extra, search_date, base_data):
     if not doubloons:
         return None
 
@@ -334,6 +336,7 @@ def get_sgns_for_doubloons(doubloons, signatures, search_date, base_data):
                    '_results_number': 0,
                    '_facets': 'product',
                    '_facets_size': limit}
+    utils.update_params(base_params, extra)
 
     queries = []
     for bid, pcvs in doubloons.items():

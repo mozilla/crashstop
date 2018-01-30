@@ -72,7 +72,7 @@ def get(date='today',
 
 
 def get_for_urls_sgns(hg_urls, signatures, products,
-                      sumup=False, date='today'):
+                      sumup=False, extra={}, date='today'):
     data = {}
     res = {'data': data,
            'versions': {}}
@@ -98,8 +98,8 @@ def get_for_urls_sgns(hg_urls, signatures, products,
             dates[(product, chan)] = sorted(v.keys())
 
     sgns_data = dc.get_sgns_data(channels, all_versions,
-                                 signatures, products,
-                                 date=date)
+                                 signatures, extra,
+                                 products, date=date)
 
     for tw in towait:
         tw.wait()
@@ -167,8 +167,9 @@ def prepare_signatures_for_html(data, product, channel):
     return data
 
 
-def prepare_bug_for_html(data):
+def prepare_bug_for_html(data, extra={}):
     params = utils.get_params_for_link()
+    has_extra = utils.update_params(params, extra)
     links = {}
     versions = data['versions']
     data = data['data']
@@ -213,4 +214,4 @@ def prepare_bug_for_html(data):
                 if chan in data[prod]:
                     d[chan] = sorted(data[prod][chan].items())
 
-    return results, links, versions
+    return results, links, versions, has_extra

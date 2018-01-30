@@ -20,10 +20,10 @@ def get_client():
     return __CLIENT
 
 
-def get_value(hgurls, sgns):
-    data = signatures.get_for_urls_sgns(hgurls, sgns, [], sumup=True)
-    data, links, versions = signatures.prepare_bug_for_html(data)
-    return (data, links, versions)
+def get_value(hgurls, sgns, extra):
+    data = signatures.get_for_urls_sgns(hgurls, sgns, [], extra=extra, sumup=True)
+    data, links, versions, has_extra = signatures.prepare_bug_for_html(data, extra)
+    return (data, links, versions, has_extra)
 
 
 def get_hash(key):
@@ -33,15 +33,29 @@ def get_hash(key):
     return md5 + sha1 + str(len(key))
 
 
-def get_sumup(hg_urls, signatures):
+def get_extra_as_list(extra):
+    res = []
+    for k, v in sorted(extra.items()):
+        res.append(k)
+        if isinstance(v, list):
+            for i in v:
+                res.append(i)
+        else:
+            res.append(v)
+
+    return res
+
+
+def get_sumup(hg_urls, signatures, extra):
     key = '\n'.join(chain(signatures,
-                          hg_urls))
+                          hg_urls,
+                          get_extra_as_list(extra)))
     key = get_hash(key)
     bcache = get_client()
     for _ in [0, 1]:
         if bcache.add(key, 0, time=30):
             try:
-                value = get_value(hg_urls, signatures)
+                value = get_value(hg_urls, signatures, extra)
             except Exception:
                 bcache.delete(key)
                 raise
@@ -65,7 +79,7 @@ def get_sumup(hg_urls, signatures):
     # so probably the memcached server is down
     logger.warning('Issue with memcached...')
 
-    return get_value(hg_urls, signatures)
+    return get_value(hg_urls, signatures, extra)
 
 
 def clear():

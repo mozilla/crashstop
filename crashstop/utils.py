@@ -256,3 +256,12 @@ def equals_bids(b1, b2):
             if j != b2[p][c]:
                 return False
     return True
+
+
+def update_params(params, extra):
+    added = False
+    for k, v in extra.items():
+        if k not in params:
+            params[k] = v
+            added = True
+    return added

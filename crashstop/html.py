@@ -31,7 +31,7 @@ def bug():
     bugid = request.args.get('id', '')
     bugid = utils.get_bug_number(bugid)
     data = models.Signatures.get_bybugid(bugid)
-    data, links, versions = signatures.prepare_bug_for_html(data)
+    data, links, versions, _ = signatures.prepare_bug_for_html(data)
 
     return render_template('bug.html',
                            data=data,
@@ -47,7 +47,7 @@ def crashdata():
     products = request.args.getlist('products')
     products = utils.get_correct_products(products)
     data = signatures.get_for_urls_sgns(hgurls, sgns, products)
-    data, links, versions = signatures.prepare_bug_for_html(data)
+    data, links, versions, _ = signatures.prepare_bug_for_html(data)
 
     return render_template('crashdata.html',
                            data=data,
@@ -58,12 +58,20 @@ def crashdata():
 
 
 def sumup():
+    # cache.clear()
     sgns = request.args.getlist('s')
     hgurls = request.args.getlist('h')
-    data, links, versions = cache.get_sumup(hgurls, sgns)
+    extra = dict(request.args)
+    if 's' in extra:
+        del extra['s']
+    if 'h' in extra:
+        del extra['h']
+
+    data, links, versions, has_extra = cache.get_sumup(hgurls, sgns, extra)
     return render_template('sumup.html',
                            data=data,
                            links=links,
                            versions=versions,
+                           has_extra=has_extra,
                            products=utils.get_products(),
                            enumerate=enumerate)
