@@ -96,7 +96,6 @@ if (container) {
         iframe.setAttribute("src", crashStopLink);
         iframe.setAttribute("id", "crash-stop-iframe");
         iframe.setAttribute("style", "display:block;width:100%;height:100%;border:0px;");
-        iframe.setAttribute("scrolling", "no");
         const rightDiv = document.createElement("div");
         rightDiv.setAttribute("class", "value");
         rightDiv.append(iframe);
