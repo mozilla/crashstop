@@ -15,107 +15,58 @@ from .const import RAW, INSTALLS
 from .logger import logger
 
 
-def get_corrected_versions(data):
-    # if we've 46, 48, 57, 58 then just return 57, 58
-    res = {}
-    for chan, info in data.items():
-        majors = defaultdict(lambda: list())
-        for i in info:
-            majors[utils.get_major(i[1])].append(i)
-        M = max(majors.keys())
-        m = M
-        while m in majors:
-            m -= 1
-        m += 1
-        res[chan] = L = []
-        for i in range(m, M + 1):
-            L += majors[i]
-    return res
+def filter_nightly_buildids(buildids):
 
-
-def remove_dup_versions(data):
-    res = {}
-    if 'nightly' in data:
-        res['nightly'] = [(b, v) for b, v, _ in data['nightly']]
-
-    for chan in ['beta', 'release']:
-        if chan in data:
-            versions = {}
-            for b, v, c in data[chan]:
-                if v in versions:
-                    if c > versions[v][1]:
-                        versions[v] = (b, c)
-                else:
-                    versions[v] = (b, c)
-            res[chan] = []
-            for v, i in versions.items():
-                bid, _ = i
-                res[chan].append((bid, v))
-
-    res = get_corrected_versions(res)
-
-    return res
-
-
-def get_buildids(search_date, channels, products):
-    data = {p: {c: list() for c in channels} for p in products}
-
-    def handler(chan, threshold, json, data):
+    def handler(threshold, json, data):
         if not json['facets']['build_id']:
             return
         for facets in json['facets']['build_id']:
             count = facets['count']
             if count >= threshold:
-                version = facets['facets']['version'][0]['term']
-                if chan != 'beta' or not (version.endswith('a2') or
-                                          version.endswith('b0')):
-                    buildid = facets['term']
-                    data.append((buildid, version, count))
+                bid = utils.get_build_date(facets['term'])
+                data[bid] = True
 
     params = {'product': '',
-              'release_channel': '',
-              'date': search_date,
-              '_aggs.build_id': 'version',
+              'build_id': '',
+              'date': '',
+              'release_channel': 'nightly',
+              '_aggs.build_id': 'release_channel',
               '_results_number': 0,
               '_facets': 'release_channel',
               '_facets_size': 1000}
 
+    data = {'Firefox': None,
+            'FennecAndroid': None}
     queries = []
-    for prod in products:
+    for prod in data.keys():
         pparams = copy.deepcopy(params)
         pparams['product'] = prod
-        for chan in channels:
-            params = copy.deepcopy(pparams)
-            if chan == 'beta' and prod == 'Firefox':
-                params['release_channel'] = ['beta', 'aurora']
-            else:
-                params['release_channel'] = chan
-            threshold = config.get_min_total(prod, chan)
-            hdler = functools.partial(handler, chan, threshold)
-            queries.append(Query(socorro.SuperSearch.URL,
-                                 params=params,
-                                 handler=hdler,
-                                 handlerdata=data[prod][chan]))
+        threshold = config.get_min_total(prod, 'nightly')
+        bids = buildids[prod]['nightly']
+        pparams['date'] = '>=' + bids[0][0].strftime('%Y-%m-%d')
+        pparams['build_id'] = L = []
+        data[prod] = D = {}
+        for b in bids:
+            L.append(utils.get_buildid(b[0]))
+            D[b[0]] = False
+
+        hdler = functools.partial(handler, threshold)
+        queries.append(Query(socorro.SuperSearch.URL,
+                             params=pparams,
+                             handler=hdler,
+                             handlerdata=D))
 
     socorro.SuperSearch(queries=queries).wait()
 
     for prod, info in data.items():
-        data[prod] = remove_dup_versions(info)
-
-    res = {}
-    for prod, info in data.items():
-        res[prod] = d = {}
-        for chan, bids in info.items():
-            bids = sorted(bids)
-            min_v = config.get_versions(prod, chan)
-            if len(bids) > min_v:
-                bids = bids[-min_v:]
-            bids = [(utils.get_build_date(bid), v) for bid, v in bids]
-            d[chan] = bids
-
-    logger.info('Buildids for {}/{} got.'.format(products, channels))
-
-    return res
+        bids = buildids[prod]['nightly']
+        L = [(bid, info[bid[0]]) for bid in bids]
+        for i in range(len(L) - 1, -1, -1):
+            if not L[i][1]:
+                L[i] = (L[i][0], True)
+            else:
+                break
+        buildids[prod]['nightly'] = [x[0] for x in L if x[1]]
 
 
 def get_sgns_by_buildid(signatures, channels, products, search_date, bids):
@@ -163,7 +114,7 @@ def get_sgns_by_buildid(signatures, channels, products, search_date, bids):
             params = copy.deepcopy(pparams)
             params['release_channel'] = chan
             data = {}
-            sbids = [b for b, _ in bids_prod[chan]]
+            sbids = [b[0] for b in bids_prod[chan]]
             queries = []
             for index, bid in enumerate(sbids):
                 params = copy.deepcopy(params)
@@ -184,94 +135,43 @@ def get_sgns_by_buildid(signatures, channels, products, search_date, bids):
     return res, ratios
 
 
-def get_all_buildids(versions):
-    bids = {}
-    doubloons = {}
-    all_bids = {}
-    for p, i in versions.items():
-        all_bids[p] = all_bids_p = {}
-        for c, j in i.items():
-            all_bids_p[c] = all_bids_p_c = []
-            for bid, v in j.items():
-                all_bids_p_c.append(bid)
-                bid = utils.get_buildid(bid)
-                if bid in bids:
-                    # we've a doubloon
-                    if bid not in doubloons:
-                        doubloons[bid] = [bids[bid]]
-                    doubloons[bid].append((p, c, v))
-                    del bids[bid]
-                else:
-                    bids[bid] = (p, c, v)
-
-    all_versions = {v for _, _, v in bids.values()}
-    all_versions = list(all_versions)
-
-    return all_bids, bids, all_versions, doubloons
-
-
-def get_sgns_data(channels, versions, signatures, extra, products, date='today'):
-    today = lmdutils.get_date_ymd(date)
-    few_days_ago = today - relativedelta(days=config.get_limit())
-    search_date = socorro.SuperSearch.get_search_date(few_days_ago)
-    nbase = [0, 0]
-    data = {}
-    bids, all_bids, all_versions, doubloons = get_all_buildids(versions)
-
-    for product in products:
-        data[product] = d1 = {}
-        b1 = bids[product]
-        for chan in channels:
-            d1[chan] = d2 = {}
-            b2 = b1[chan]
-            for signature in signatures:
-                d2[signature] = b2
-
+def get_sgns_data_helper(data, signatures, bids, nbase, extra, search_date, product=None, channel=None):
     limit = 80
 
-    def handler(sgn, json, data):
+    def handler(sgn, bids, nbase, json, data):
         if not json['facets']['build_id']:
             return
         for facets in json['facets']['build_id']:
             bid = facets['term']
-            prod, chan, ver = all_bids[str(bid)]
-            _facets = facets['facets']
-            chans = set()
-            for c in _facets['release_channel']:
-                c = c['term']
-                if c == 'aurora':
-                    chans.add('beta')
-                else:
-                    chans.add(c)
+            bid = utils.get_build_date(bid)
+            prod, chan = bids[bid]
+            dpc = data[prod][chan]
+            nums = dpc[sgn]
+            if isinstance(nums, list):
+                dpc[sgn] = nums = {b: copy.copy(nbase) for b in dpc[sgn]}
+            if bid in nums:
+                n = nums[bid]
+                n[RAW] = facets['count']
+                facets = facets['facets']
+                N = len(facets['install_time'])
+                if N == limit:
+                    N = facets['cardinality_install_time']['value']
+                n[INSTALLS] = N
 
-            if len(_facets['product']) != 1 or len(chans) != 1:
-                bid = str(bid)
-                doubloons[bid] = [(prod, chan, ver)]
-            else:
-                dpc = data[prod][chan]
-                nums = dpc[sgn]
-                bid = utils.get_build_date(bid)
-                if isinstance(nums, list):
-                    dpc[sgn] = nums = {b: copy.copy(nbase) for b in dpc[sgn]}
-                if bid in nums:
-                    n = nums[bid]
-                    n[RAW] = facets['count']
-                    N = len(_facets['install_time'])
-                    if N == limit:
-                        N = _facets['cardinality_install_time']['value']
-                    n[INSTALLS] = N
-
-    base_params = {'build_id': list(all_bids.keys()),
+    base_params = {'build_id': [utils.get_buildid(bid) for bid in bids.keys()],
                    'signature': '',
-                   'version': all_versions,
                    'date': search_date,
                    '_aggs.build_id': ['install_time',
-                                      '_cardinality.install_time',
-                                      'release_channel',
-                                      'product'],
+                                      '_cardinality.install_time'],
                    '_results_number': 0,
                    '_facets': 'signature',
                    '_facets_size': limit}
+
+    if product:
+        base_params['product'] = product
+    if channel:
+        base_params['release_channel'] = ['beta', 'aurora'] if channel == 'beta' else channel
+
     utils.update_params(base_params, extra)
 
     queries = []
@@ -279,83 +179,74 @@ def get_sgns_data(channels, versions, signatures, extra, products, date='today')
     for signature in signatures:
         params = copy.deepcopy(base_params)
         params['signature'] = '=' + signature
-        hdler = functools.partial(handler, signature)
+        hdler = functools.partial(handler, signature, bids, nbase)
         queries.append(Query(socorro.SuperSearch.URL,
                              params=params,
                              handler=hdler,
                              handlerdata=data))
-    socorro.SuperSearch(queries=queries).wait()
 
-    get_sgns_for_doubloons(doubloons,
-                           signatures,
-                           extra,
-                           search_date,
-                           data)
-
-    res = defaultdict(lambda: defaultdict(lambda: dict()))
-    for p, i in data.items():
-        for c, j in i.items():
-            for sgn, numbers in j.items():
-                if not isinstance(numbers, list):
-                    res[p][c][sgn] = numbers
-
+    res = socorro.SuperSearch(queries=queries)
     return res
 
 
-def get_sgns_for_doubloons(doubloons, signatures, extra, search_date, base_data):
-    if not doubloons:
-        return None
-
-    limit = 50
+def get_sgns_data(channels, versions, signatures, extra, products, towait, date='today'):
+    today = lmdutils.get_date_ymd(date)
+    few_days_ago = today - relativedelta(days=config.get_limit())
+    search_date = socorro.SuperSearch.get_search_date(few_days_ago)
     nbase = [0, 0]
+    data = {}
+    unique = {}
+    unique_prod = defaultdict(lambda: dict())
+    leftovers = {}
+    allbids = {}
 
-    def handler(bid, json, data):
-        if not json['facets']['signature']:
-            return
-        for facets in json['facets']['signature']:
-            sgn = facets['term']
-            _facets = facets['facets']
-            nums = data[sgn]
-            if isinstance(nums, list):
-                data[sgn] = nums = {b: copy.copy(nbase) for b in data[sgn]}
-            if bid in nums:
-                n = nums[bid]
-                n[RAW] = facets['count']
-                N = len(_facets['install_time'])
-                if N == limit:
-                    N = _facets['cardinality_install_time']['value']
-                n[INSTALLS] = N
+    for p, i in versions.items():
+        allbids[p] = allbids_p = {}
+        for c, j in i.items():
+            allbids_p[c] = allbids_pc = []
+            for b, k in j.items():
+                allbids_pc.append(b)
+                v, u, up = k
+                if u:
+                    unique[b] = (p, c)
+                elif up:
+                    unique_prod[p][b] = (p, c)
+                else:
+                    leftovers[b] = (p, c)
 
-    base_params = {'build_id': '',
-                   'product': '',
-                   'release_channel': '',
-                   'signature': ['=' + s for s in signatures],
-                   'date': search_date,
-                   '_aggs.signature': ['install_time',
-                                       '_cardinality.install_time'],
-                   '_results_number': 0,
-                   '_facets': 'product',
-                   '_facets_size': limit}
-    utils.update_params(base_params, extra)
+    for product in products:
+        data[product] = d1 = {}
+        b1 = allbids[product]
+        for chan in channels:
+            d1[chan] = d2 = {}
+            b2 = b1[chan]
+            for signature in signatures:
+                d2[signature] = b2
 
-    queries = []
-    for bid, pcvs in doubloons.items():
-        bparams = copy.deepcopy(base_params)
-        bparams['build_id'] = bid
-        bid = utils.get_build_date(bid)
-        for pcv in pcvs:
-            params = copy.deepcopy(bparams)
-            prod, chan, ver = pcv
-            params['product'] = prod
-            params['release_channel'] = chan
-            params['version'] = ver
-            hdler = functools.partial(handler, bid)
-            queries.append(Query(socorro.SuperSearch.URL,
-                                 params=params,
-                                 handler=hdler,
-                                 handlerdata=base_data[prod][chan]))
+    if not unique_prod:
+        # if we've only unique buildids: only N queries for the N signatures
+        towait.append(get_sgns_data_helper(data, signatures, unique,
+                                           nbase, extra, search_date))
+    else:
+        # if a buildid is unique then it's unique for its product too.
+        # So we've only 2xN queries (2 == len(['Firefox', 'FennecAndroid']))
+        for b, x in unique.items():
+            p, c = x
+            unique_prod[p][b] = (p, c)
+        for prod, bids in unique_prod.items():
+            towait.append(get_sgns_data_helper(data, signatures, bids,
+                                               nbase, extra, search_date,
+                                               product=prod))
 
-    socorro.SuperSearch(queries=queries).wait()
+    # handle the leftovers: normally they should be pretty rare
+    # we've them when they're not unique within the same product (e.g. a nightly and a beta have the same buildid)
+    for b, x in leftovers.items():
+        prod, chan = x
+        towait.append(get_sgns_data_helper(data, signatures, leftovers,
+                                           nbase, extra, search_date,
+                                           product=prod, channel=chan))
+
+    return data
 
 
 def get_pushdates(chan_rev):

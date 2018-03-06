@@ -2,14 +2,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from collections import OrderedDict
+from collections import defaultdict, OrderedDict
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from libmozdata import socorro
 from libmozdata import utils as lmdutils
 import pytz
 from . import datacollector as dc
-from . import config, models, patchinfo, tools, utils
+from . import buildhub, config, models, patchinfo, tools, utils
 from .const import RAW, INSTALLS
 from .logger import logger
 
@@ -58,7 +58,7 @@ def get(date='today',
     few_days_ago = today - relativedelta(days=config.get_limit())
     search_date = socorro.SuperSearch.get_search_date(few_days_ago, tomorrow)
 
-    bids = dc.get_buildids(search_date, channels, products)
+    bids = buildhub.get()
     start_date, end_date, date_ranges = utils.get_dates(bids)
     patches, last_date = update_patches(start_date, end_date, date_ranges)
 
@@ -69,6 +69,17 @@ def get(date='today',
     res = tools.compute_success(res, patches, bids, ratios)
 
     return res, bids, ratios, date_ranges, last_date
+
+
+def get_corrected_data(data):
+    res = defaultdict(lambda: defaultdict(lambda: dict()))
+    for p, i in data.items():
+        for c, j in i.items():
+            for sgn, numbers in j.items():
+                if not isinstance(numbers, list):
+                    res[p][c][sgn] = numbers
+
+    return res
 
 
 def get_for_urls_sgns(hg_urls, signatures, products,
@@ -89,20 +100,23 @@ def get_for_urls_sgns(hg_urls, signatures, products,
     res['versions'] = versions = {}
     dates = {}
     channels = utils.get_channels()
-    all_versions = models.Buildid.get_versions(products, channels)
+    all_versions = models.Buildid.get_versions(products, channels, unicity=True)
+    sgns_data = dc.get_sgns_data(channels, all_versions,
+                                 signatures, extra,
+                                 products, towait, date=date)
+
     for product in products:
         all_v_prod = all_versions[product]
         for chan in channels:
+            # v is a dict: bid -> (version, unique, unique_prod)
             v = all_v_prod[chan]
-            versions[(product, chan)] = v
+            versions[(product, chan)] = {b: ver[0] for b, ver in v.items()}
             dates[(product, chan)] = sorted(v.keys())
-
-    sgns_data = dc.get_sgns_data(channels, all_versions,
-                                 signatures, extra,
-                                 products, date=date)
 
     for tw in towait:
         tw.wait()
+
+    sgns_data = get_corrected_data(sgns_data)
 
     for chan, pds in pushdates.items():
         if pds:
@@ -201,7 +215,7 @@ def prepare_bug_for_html(data, extra={}):
                     params['build_id'] = '=' + bid
                     url = socorro.SuperSearch.get_link(params)
                     url += '#crash-reports'
-                    links[(sgn, bid)] = url
+                    links[(sgn, prod, chan, bid)] = url
                 if 'build_id' in params:
                     del params['build_id']
 

@@ -220,6 +220,7 @@ def get_dates(bids):
         for chan, j in i.items():
             # TODO: handle the case where j is empty...
             md, Md = j[0][0], j[-1][0]
+            assert md <= Md
             if md < start_date:
                 start_date = md
             if Md > end_date:

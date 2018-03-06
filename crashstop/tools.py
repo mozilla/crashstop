@@ -79,7 +79,7 @@ def compute_success(data, patches, bids, ratios):
         res[prod] = res_prod = {}
         for chan, j in i.items():
             ratio = ratios_prod[chan]
-            bids_chan = [b for b, _ in bids_prod[chan]]
+            bids_chan = [b[0] for b in bids_prod[chan]]
             res_prod[chan] = res_chan = {}
             min_value = config.get_min(prod, chan)
             for sgn, numbers in j.items():

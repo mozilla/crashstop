@@ -11,9 +11,9 @@ from . import config, signatures
 from .logger import logger
 
 
-__CLIENT = Client(os.environ.get('MEMCACHEDCLOUD_SERVERS').split(','),
-                  os.environ.get('MEMCACHEDCLOUD_USERNAME'),
-                  os.environ.get('MEMCACHEDCLOUD_PASSWORD'))
+__CLIENT = Client(os.environ.get('MEMCACHEDCLOUD_SERVERS', config.get_memcached('servers')).split(','),
+                  os.environ.get('MEMCACHEDCLOUD_USERNAME', config.get_memcached('username')),
+                  os.environ.get('MEMCACHEDCLOUD_PASSWORD', config.get_memcached('password')))
 
 
 def get_client():

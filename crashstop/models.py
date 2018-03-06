@@ -51,12 +51,16 @@ class Buildid(db.Model):
     channel = db.Column(CHANNEL_TYPE, primary_key=True)
     buildid = db.Column(db.DateTime(timezone=True), primary_key=True)
     version = db.Column(db.String(12))
+    unique = db.Column(db.Boolean)
+    unique_prod = db.Column(db.Boolean)
 
-    def __init__(self, product, channel, buildid, version):
+    def __init__(self, product, channel, buildid, version, unique, unique_prod):
         self.product = product
         self.channel = channel
         self.buildid = buildid
         self.version = version
+        self.unique = unique
+        self.unique_prod = unique_prod
 
     @staticmethod
     def add_buildids(data, commit=True):
@@ -66,28 +70,30 @@ class Buildid(db.Model):
         qs = db.session.query(Buildid)
         here = defaultdict(lambda: defaultdict(lambda: set()))
         for q in qs:
-            here[q.product][q.channel].add((q.buildid, q.version))
+            here[q.product][q.channel].add(q.buildid)
         for prod, i in data.items():
             here_p = here[prod]
             for chan, j in i.items():
                 here_pc = here_p[chan]
-                j = set(j)
-                toadd = j - here_pc
-                torm = [x for x, _ in here_pc - j]
-                if torm:
+                for b, v, u, up in j:
+                    if b not in here_pc:
+                        db.session.add(Buildid(prod, chan, b, v, u, up))
+                    else:
+                        here_pc.remove(b)
+
+                if here_pc:
                     q = db.session.query(Buildid)
                     q = q.filter(Buildid.product == prod,
                                  Buildid.channel == chan,
-                                 Buildid.buildid.in_(torm))
+                                 Buildid.buildid.in_(list(here_pc)))
                     q.delete(synchronize_session='fetch')
-                for b, v in toadd:
-                    db.session.add(Buildid(prod, chan, b, v))
         if commit:
             db.session.commit()
 
     @staticmethod
     def get_versions(products=utils.get_products(),
-                     channels=utils.get_channels()):
+                     channels=utils.get_channels(),
+                     unicity=False):
         if isinstance(products, six.string_types):
             products = [products]
         if isinstance(channels, six.string_types):
@@ -99,7 +105,10 @@ class Buildid(db.Model):
         for bid in bids:
             d = res[bid.product][bid.channel]
             buildid = bid.buildid.astimezone(pytz.utc)
-            d[buildid] = bid.version
+            if unicity:
+                d[buildid] = (bid.version, bid.unique, bid.unique_prod)
+            else:
+                d[buildid] = bid.version
         return res
 
     @staticmethod

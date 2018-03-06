@@ -45,9 +45,9 @@
       <tr>
         <th class="norm">Version</th>
         {% if info['position'] == -2 -%}
-        {% for pos, bid in enumerate(info['buildids']) %}<td class="lavender buildid"><a title="{{ bid }}" href="{{ links[(sgn, bid)] }}" target="blank_">{{ versions[(prod, chan)][bid] }}</a></td>{% endfor -%}
+        {% for pos, bid in enumerate(info['buildids']) %}<td class="lavender buildid"><a title="{{ bid }}" href="{{ links[(sgn, prod, chan, bid)] }}" target="blank_">{{ versions[(prod, chan)][bid] }}</a></td>{% endfor -%}
         {% else -%}
-        {% for pos, bid in enumerate(info['buildids']) %}<td class="{% if pos <= info['position'] -%}without{% else -%}with{% endif -%}"><a title="{{ bid }}" href="{{ links[(sgn, bid)] }}" target="blank_">{{ versions[(prod, chan)][bid] }}</a></td>{% endfor -%}
+        {% for pos, bid in enumerate(info['buildids']) %}<td class="{% if pos <= info['position'] -%}without{% else -%}with{% endif -%}"><a title="{{ bid }}" href="{{ links[(sgn, prod, chan, bid)] }}" target="blank_">{{ versions[(prod, chan)][bid] }}</a></td>{% endfor -%}
         {% endif -%}
       </tr>
       <tr class="gray">

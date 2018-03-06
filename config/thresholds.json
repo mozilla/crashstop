@@ -32,7 +32,7 @@
         {
             "min_total_crashes": 1000,
             "min_crashes": 10,
-            "versions": 10
+            "versions": 6
         },
         "release":
         {

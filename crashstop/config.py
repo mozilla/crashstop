@@ -7,6 +7,7 @@ import json
 
 __THRESHOLDS = None
 __GLOBAL = None
+__LOCAL = None
 
 
 def _get_thresholds():
@@ -25,6 +26,17 @@ def _get_global():
     return __GLOBAL
 
 
+def _get_local():
+    global __LOCAL
+    if not __LOCAL:
+        try:
+            with open('./config/local.json', 'r') as In:
+                __LOCAL = json.load(In)
+        except Exception:
+            __LOCAL = {}
+    return __LOCAL
+
+
 def get_min_total(prod, chan):
     return _get_thresholds()[prod][chan]['min_total_crashes']
 
@@ -35,6 +47,10 @@ def get_min(prod, chan):
 
 def get_versions(prod, chan):
     return _get_thresholds()[prod][chan]['versions']
+
+
+def get_max_versions():
+    return max(v2['versions'] for v1 in _get_thresholds().values() for v2 in v1.values())
 
 
 def get_channels():
@@ -55,3 +71,11 @@ def get_limit_facets():
 
 def get_cache_time():
     return _get_global()['cache_time']
+
+
+def get_database():
+    return _get_local().get('database', '')
+
+
+def get_memcached(k):
+    return _get_local().get('memcached', {}).get(k, '')
