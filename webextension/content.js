@@ -10,6 +10,13 @@ if (!container) {
     container = document.getElementById("field_label_cf_crash_signature");
     oldWay = true;
 }
+
+function toto(x) {
+    return x.split('')
+    .map(function (char) {
+        return char.charCodeAt(0);
+    })
+}
 if (container) {
     const signatures = [];
     const selector = oldWay ? "cf_crash_signature_edit_container" : "field-value-cf_crash_signature";
@@ -51,17 +58,52 @@ if (container) {
         const aSelector = oldWay ? ".bz_comment_text > a" : ".comment-text > a";
         document.querySelectorAll(aSelector).forEach(a => {
             const parentId = a.parentNode.attributes.id;
+            let hasBugherderKw = false;
+            let hasUpliftKw = false;
             if (parentId !== currentCommentId) {
                 // we're in a new comment
                 currentCommentId = parentId;
                 isFirst = false;
+                // here we check that we've bugherder or uplift keyword
+                let commentTagSelector = "";
+                let x = "";
+                if (oldWay) {
+                    const parts = parentId.value.split("_");
+                    if (parts.length == 3) {
+                        const num = parts[2];
+                        const ctag = "comment_tag_" + num;
+                        commentTagSelector = "#" + ctag + " .bz_comment_tag";
+                        x = "x" + String.fromCharCode(160); // &nbsp;
+                    }
+                } else {
+                    const parts = parentId.value.split("-");
+                    if (parts.length == 2) {
+                        const num = parts[1];
+                        const ctag = "ctag-" + num;
+                        commentTagSelector = "#" + ctag + ">.comment-tags>.comment-tag";
+                        x = "x";
+                    }
+                }
+                if (commentTagSelector) {
+                    const xb = x + "bugherder";
+                    const xu = x + "uplift";
+                    document.querySelectorAll(commentTagSelector).forEach(span => {
+                        const text = span.innerText;
+                        if (!hasBugherderKw) {
+                            hasBugherderKw = text === xb;
+                        }
+                        if (!hasUpliftKw) {
+                            hasUpliftKw = text === xu;
+                        }
+                    });
+                }
             }
             const prev = a.previousSibling;
             if (prev == null || (prev.previousSibling == null && !prev.textContent.trim())) {
                 // the first element in the comment is the link (no text before)
                 isFirst = true;
             }
-            if (isFirst) {
+            if (isFirst || hasBugherderKw || hasUpliftKw) {
                 // so we take the first link and the following ones only if they match the pattern
                 const link = a.href;
                 const m = link.match(hgurlPattern);
