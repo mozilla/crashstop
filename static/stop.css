@@ -58,14 +58,14 @@ th.norm {
 .legend {
     margin-bottom: 1em;
     column-span: all;
-    columns: 3;
+    columns: 4;
     column-gap: 0.5em;
     color:#666;
 }
 
 .info {
     columns: 1;
-    background-color: lightblue;
+    background-color: LightBlue;
     margin-bottom: 1em;
     margin-top: -0.5em;
 }
@@ -76,11 +76,11 @@ caption span {
 }
 
 .with {
-    background-color: lightgreen;
+    background-color: LightGreen;
 }
 
 .without {
-    background-color: lightpink;
+    background-color: LightPink;
 }
 
 .gray {
@@ -89,6 +89,10 @@ caption span {
 
 .lavender {
     background-color: FloralWhite;
+}
+
+.startup {
+    background-color: red;
 }
 
 nav {

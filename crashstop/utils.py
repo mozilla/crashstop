@@ -8,6 +8,7 @@ import copy
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from libmozdata import utils
+import math
 import pytz
 import re
 import six
@@ -266,3 +267,12 @@ def update_params(params, extra):
             params[k] = v
             added = True
     return added
+
+
+def startup_crash_rate(data):
+    res = [0, 0]
+    for d in data:
+        res[int(d['term'] == 'T')] = d['count']
+    if res == [0, 0]:
+        return -1
+    return int(math.ceil(float(res[1]) / float(res[0] + res[1]) * 100.))

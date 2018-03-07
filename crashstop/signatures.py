@@ -10,7 +10,7 @@ from libmozdata import utils as lmdutils
 import pytz
 from . import datacollector as dc
 from . import buildhub, config, models, patchinfo, tools, utils
-from .const import RAW, INSTALLS
+from .const import RAW, INSTALLS, STARTUP
 from .logger import logger
 
 
@@ -128,17 +128,22 @@ def get_for_urls_sgns(hg_urls, signatures, products,
             d1[chan] = d2 = {}
             pushdate = pushdates.get(chan)
             ds = dates[(product, chan)]
+            L = len(ds)
             for sgn, numbers in j.items():
-                raw = [0] * len(ds)
-                installs = [0] * len(ds)
-                for k, d in enumerate(ds):
+                raw = [0] * L
+                installs = [0] * L
+                startup = [False] * L
+                for k in range(L):
+                    d = ds[k]
                     n = numbers[d]
                     raw[k] = n[RAW]
                     installs[k] = n[INSTALLS]
+                    startup[k] = n[STARTUP]
                 d2[sgn] = {'pushdate': pushdate,
                            'dates': ds,
                            'raw': raw,
-                           'installs': installs}
+                           'installs': installs,
+                           'startup': startup}
 
     return res
 

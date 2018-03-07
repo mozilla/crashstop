@@ -11,7 +11,7 @@ from libmozdata import socorro, utils as lmdutils
 from libmozdata.connection import Query
 from libmozdata.hgmozilla import Revision
 from . import config, utils, tools
-from .const import RAW, INSTALLS
+from .const import RAW, INSTALLS, STARTUP
 from .logger import logger
 
 
@@ -135,6 +135,22 @@ def get_sgns_by_buildid(signatures, channels, products, search_date, bids):
     return res, ratios
 
 
+def analyze_uptime(histo):
+    res = {}
+    for h in histo:
+        term = h['term']
+        if term > 60:
+            break
+        for i in h['facets']['build_id']:
+            bid = i['term']
+            count = i['count']
+            if bid in res:
+                res[bid] += count
+            else:
+                res[bid] = count
+    return res
+
+
 def get_sgns_data_helper(data, signatures, bids, nbase, extra, search_date, product=None, channel=None):
     limit = 80
 
@@ -142,8 +158,8 @@ def get_sgns_data_helper(data, signatures, bids, nbase, extra, search_date, prod
         if not json['facets']['build_id']:
             return
         for facets in json['facets']['build_id']:
-            bid = facets['term']
-            bid = utils.get_build_date(bid)
+            rawbid = facets['term']
+            bid = utils.get_build_date(rawbid)
             prod, chan = bids[bid]
             dpc = data[prod][chan]
             nums = dpc[sgn]
@@ -157,12 +173,14 @@ def get_sgns_data_helper(data, signatures, bids, nbase, extra, search_date, prod
                 if N == limit:
                     N = facets['cardinality_install_time']['value']
                 n[INSTALLS] = N
+                n[STARTUP] = utils.startup_crash_rate(facets['startup_crash'])
 
     base_params = {'build_id': [utils.get_buildid(bid) for bid in bids.keys()],
                    'signature': '',
                    'date': search_date,
                    '_aggs.build_id': ['install_time',
-                                      '_cardinality.install_time'],
+                                      '_cardinality.install_time',
+                                      'startup_crash'],
                    '_results_number': 0,
                    '_facets': 'signature',
                    '_facets_size': limit}
@@ -193,7 +211,7 @@ def get_sgns_data(channels, versions, signatures, extra, products, towait, date=
     today = lmdutils.get_date_ymd(date)
     few_days_ago = today - relativedelta(days=config.get_limit())
     search_date = socorro.SuperSearch.get_search_date(few_days_ago)
-    nbase = [0, 0]
+    nbase = [0, 0, 0]
     data = {}
     unique = {}
     unique_prod = defaultdict(lambda: dict())

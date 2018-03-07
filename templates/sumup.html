@@ -5,7 +5,7 @@
 <!DOCTYPE html>
 <html lang="en-us">
   <head>
-    <link rel="stylesheet" href="/stop.css?v=3">
+    <link rel="stylesheet" href="/stop.css?v=4">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <title>Crash data</title>
     <script type="text/javascript">
@@ -24,9 +24,10 @@
     <table>
       <caption>
         <div class="legend">
-          <span class="lavender">No patch info</span>
-          <span class="without">Without patch</span>
-          <span class="with">With patch</span>
+          <span title="No patch information have been found in the comments" class="lavender">No patch info</span>
+          <span title="The build doesn't contain the patch" class="without">Without patch</span>
+          <span title="The build contains the patch" class="with">With patch</span>
+          <span title="More than 50% of the crashes have startup_crash flag set to true" class="startup">Startup crash</span>
         </div>
         {% if has_extra %}
         <div class="info">
@@ -56,7 +57,7 @@
       </tr>
       <tr>
         <th class="norm">Crashes</th>
-        {% for n in info['raw'] %}<td class="num">{{ n }}</td>{% endfor -%}
+        {% for n, s in zip(info['raw'], info['startup']) %}<td {% if s != -1 %}title="{{ s }}% of the crashes are startup ones"{% endif %} class="num{% if s %} startup > 50{% endif -%}">{{ n }}</td>{% endfor -%}
       </tr>
       {% endfor -%}
       {% endfor -%}

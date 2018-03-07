@@ -4,3 +4,4 @@
 
 RAW = 0
 INSTALLS = 1
+STARTUP = 2

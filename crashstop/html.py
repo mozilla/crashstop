@@ -58,7 +58,7 @@ def crashdata():
 
 
 def sumup():
-    # cache.clear()
+    cache.clear()
     sgns = request.args.getlist('s')
     hgurls = request.args.getlist('h')
     extra = dict(request.args)
@@ -74,4 +74,5 @@ def sumup():
                            versions=versions,
                            has_extra=has_extra,
                            products=utils.get_products(),
-                           enumerate=enumerate)
+                           enumerate=enumerate,
+                           zip=zip)
