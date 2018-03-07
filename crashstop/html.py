@@ -58,7 +58,7 @@ def crashdata():
 
 
 def sumup():
-    cache.clear()
+    # cache.clear()
     sgns = request.args.getlist('s')
     hgurls = request.args.getlist('h')
     extra = dict(request.args)
