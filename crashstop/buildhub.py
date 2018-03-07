@@ -10,8 +10,8 @@ from .logger import logger
 
 
 URL = 'https://buildhub.prod.mozaws.net/v1/buckets/build-hub/collections/releases/search'
-VERSION_PAT = '[0-9\.]+([ab][0-9]+)?'
-CHANNELS = ['nightly', 'aurora', 'beta', 'release']
+VERSION_PAT = '[0-9\.]+(([ab][0-9]+)|esr)?'
+CHANNELS = ['nightly', 'aurora', 'beta', 'release', 'esr']
 PRODUCTS = ['firefox', 'devedition', 'fennec']
 RPRODS = {'firefox': 'Firefox',
           'devedition': 'Firefox',

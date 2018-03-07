@@ -18,6 +18,12 @@
             "min_total_crashes": 10000,
             "min_crashes": 50,
             "versions": 4
+        },
+        "esr":
+        {
+            "min_total_crashes": 10000,
+            "min_crashes": 50,
+            "versions": 2
         }
     },
     "FennecAndroid":
@@ -39,6 +45,12 @@
             "min_total_crashes": 10000,
             "min_crashes": 50,
             "versions": 3
+        },
+        "esr":
+        {
+            "min_total_crashes": 10000,
+            "min_crashes": 50,
+            "versions": 2
         }
     },
     "Thunderbird":

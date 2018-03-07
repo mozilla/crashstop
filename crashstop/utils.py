@@ -17,6 +17,8 @@ from .const import RAW, INSTALLS
 
 
 HG_PAT = re.compile(r'^http[s]?://hg\.mozilla\.org/(?:releases/)?mozilla-([^/]*)/rev/([0-9a-f]+)$') # NOQA
+ESR_PAT = re.compile(r'^esr[0-9]+$')
+CHANS = set(config.get_channels())
 
 
 try:
@@ -65,7 +67,7 @@ def analyze_hg_url(url):
         rev = m.group(2)
         if channel == 'central':
             channel = 'nightly'
-        elif channel not in get_channels():
+        elif channel not in CHANS or not ESR_PAT.match(channel):
             channel = rev = ''
 
     return channel, rev

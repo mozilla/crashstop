@@ -43,6 +43,7 @@ if (container) {
             }
         });
         const hgurlPattern = new RegExp("^http[s]?://hg\\.mozilla\\.org/(?:releases/)?mozilla-([^/]*)/rev/([0-9a-f]+)$");
+        const esrPattern = new RegExp("^esr[0-9]+$");
         const repos = new Set(["central", "beta", "release"]);
         const hgrevs = [];
         let isFirst = false;
@@ -66,7 +67,7 @@ if (container) {
                 const m = link.match(hgurlPattern);
                 if (m != null) {
                     let repo = m[1];
-                    if (repos.has(repo)) {
+                    if (repos.has(repo) || repo.match(esrPattern)) {
                         if (repo === "central") {
                             repo = "nightly";
                         }
@@ -86,6 +87,7 @@ if (container) {
         const spart = signatures.join("&") + "&";
         const extra = extraSocorroArgs.join("&");
         const crashStopLink = encodeURI(sumup + "?" + hpart + spart + extra);
+        console.log(crashStopLink);
         const iframe = document.createElement("iframe");
         window.addEventListener("message", function (e) {
             if (e.origin == crashStop) {

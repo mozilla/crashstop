@@ -112,6 +112,9 @@ def get_sgns_by_buildid(signatures, channels, products, search_date, bids):
         ratios[prod] = ratios_prod = {}
         res[prod] = res_prod = {}
         for chan in channels:
+            if chan not in bids_prod:
+                continue
+
             params = copy.deepcopy(pparams)
             params['release_channel'] = chan
             data = {}
@@ -280,7 +283,14 @@ def get_pushdates(chan_rev):
     data = {}
 
     for chan, revs in chan_rev.items():
-        data[chan] = pd = []
+        if chan.startswith('esr'):
+            if 'esr' not in data:
+                data['esr'] = pd = []
+            else:
+                pd = data['esr']
+        else:
+            data[chan] = pd = []
+
         for rev in revs:
             res.append(Revision(channel=chan,
                                 params={'node': rev},
