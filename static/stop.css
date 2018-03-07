@@ -25,7 +25,7 @@ table {
 th {
     border: 1px solid #cbcbcb;
     background-color: #f0f0f0;
-    color:#666;
+    color: #666;
 }
 
 tr th[colspan="100"] {
@@ -93,6 +93,10 @@ caption span {
 
 .startup {
     background-color: red;
+}
+
+span.startup {
+    color: black;
 }
 
 nav {
