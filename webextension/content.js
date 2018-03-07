@@ -87,7 +87,6 @@ if (container) {
         const spart = signatures.join("&") + "&";
         const extra = extraSocorroArgs.join("&");
         const crashStopLink = encodeURI(sumup + "?" + hpart + spart + extra);
-        console.log(crashStopLink);
         const iframe = document.createElement("iframe");
         window.addEventListener("message", function (e) {
             if (e.origin == crashStop) {
