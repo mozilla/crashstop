@@ -57,7 +57,7 @@
       </tr>
       <tr>
         <th class="norm">Crashes</th>
-        {% for n, s in zip(info['raw'], info['startup']) %}<td {% if s != -1 %}title="{{ s }}% of the crashes are startup ones"{% endif %} class="num{% if s %} startup > 50{% endif -%}">{{ n }}</td>{% endfor -%}
+        {% for n, s in zip(info['raw'], info['startup']) %}<td {% if s != -1 %}title="{{ s }}% of the crashes are startup ones"{% endif %} class="num{% if s > 50 %} startup{% endif -%}">{{ n }}</td>{% endfor -%}
       </tr>
       {% endfor -%}
       {% endfor -%}
