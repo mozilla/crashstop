@@ -8,7 +8,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import functools
 from libmozdata import socorro, utils as lmdutils
-from libmozdata.connection import Query
+from libmozdata.connection import Query, Connection
 from libmozdata.hgmozilla import Revision
 from . import config, utils, tools
 from .const import RAW, INSTALLS, STARTUP
@@ -42,19 +42,20 @@ def filter_nightly_buildids(buildids):
         pparams = copy.deepcopy(params)
         pparams['product'] = prod
         threshold = config.get_min_total(prod, 'nightly')
-        bids = buildids[prod]['nightly']
-        pparams['date'] = '>=' + bids[0][0].strftime('%Y-%m-%d')
-        pparams['build_id'] = L = []
         data[prod] = D = {}
-        for b in bids:
-            L.append(utils.get_buildid(b[0]))
-            D[b[0]] = False
+        for bids in Connection.chunks(buildids[prod]['nightly'], chunk_size=128):
+            pparams = copy.deepcopy(pparams)
+            pparams['date'] = '>=' + bids[0][0].strftime('%Y-%m-%d')
+            pparams['build_id'] = L = []
+            for b in bids:
+                L.append(utils.get_buildid(b[0]))
+                D[b[0]] = False
 
-        hdler = functools.partial(handler, threshold)
-        queries.append(Query(socorro.SuperSearch.URL,
-                             params=pparams,
-                             handler=hdler,
-                             handlerdata=D))
+            hdler = functools.partial(handler, threshold)
+            queries.append(Query(socorro.SuperSearch.URL,
+                                 params=pparams,
+                                 handler=hdler,
+                                 handlerdata=D))
 
     socorro.SuperSearch(queries=queries).wait()
 
