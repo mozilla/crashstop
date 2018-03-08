@@ -11,12 +11,6 @@ if (!container) {
     oldWay = true;
 }
 
-function toto(x) {
-    return x.split('')
-    .map(function (char) {
-        return char.charCodeAt(0);
-    })
-}
 if (container) {
     const signatures = [];
     const selector = oldWay ? "cf_crash_signature_edit_container" : "field-value-cf_crash_signature";
