@@ -10,7 +10,7 @@ from libmozdata import utils as lmdutils
 import pytz
 from . import datacollector as dc
 from . import buildhub, config, models, patchinfo, tools, utils
-from .const import RAW, INSTALLS, STARTUP
+from .const import RAW, INSTALLS, STARTUP, PLATFORMS
 from .logger import logger
 
 
@@ -133,17 +133,25 @@ def get_for_urls_sgns(hg_urls, signatures, products,
                 raw = [0] * L
                 installs = [0] * L
                 startup = [False] * L
+                platforms = {}
                 for k in range(L):
                     d = ds[k]
                     n = numbers[d]
                     raw[k] = n[RAW]
                     installs[k] = n[INSTALLS]
                     startup[k] = n[STARTUP]
+                    for platf, count in n[PLATFORMS].items():
+                        if platf in platforms:
+                            platforms[platf] += count
+                        else:
+                            platforms[platf] = count
+
                 d2[sgn] = {'pushdate': pushdate,
                            'dates': ds,
                            'raw': raw,
                            'installs': installs,
-                           'startup': startup}
+                           'startup': startup,
+                           'platforms': utils.percentage_platforms(platforms)}
 
     return res
 

@@ -121,3 +121,39 @@ textarea {
     -moz-box-sizing: border-box;    /* Firefox, other Gecko */
     box-sizing: border-box;         /* IE 8+ */
 }
+
+.windows {
+    background: url("/Windows_Logo.png");
+    background-repeat: no-repeat;
+    background-size: auto 1.3em;
+    width: 1.3em;
+    height: 1.3em;
+    float: right;
+}
+
+.linux {
+    background: url("/Linux_Logo.png");
+    background-repeat: no-repeat;
+    background-size: auto 1.3em;
+    width: 1.3em;
+    height: 1.3em;
+    float: right;
+}
+
+.osx {
+    background: url("/OSX_Logo.png");
+    background-repeat: no-repeat;
+    background-size: auto 1.3em;
+    width: 1.3em;
+    height: 1.3em;
+    float: right;
+}
+
+.android {
+    background: url("/Android_Logo.png");
+    background-repeat: no-repeat;
+    background-size: auto 1.3em;
+    width: 1.3em;
+    height: 1.3em;
+    float: right;
+}

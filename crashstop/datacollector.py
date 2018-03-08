@@ -11,7 +11,7 @@ from libmozdata import socorro, utils as lmdutils
 from libmozdata.connection import Query, Connection
 from libmozdata.hgmozilla import Revision
 from . import config, utils, tools
-from .const import RAW, INSTALLS, STARTUP
+from .const import RAW, INSTALLS, PLATFORMS, STARTUP
 from .logger import logger
 
 
@@ -178,13 +178,15 @@ def get_sgns_data_helper(data, signatures, bids, nbase, extra, search_date, prod
                     N = facets['cardinality_install_time']['value']
                 n[INSTALLS] = N
                 n[STARTUP] = utils.startup_crash_rate(facets['startup_crash'])
+                n[PLATFORMS] = utils.analyze_platforms(facets['platform_pretty_version'])
 
     base_params = {'build_id': [utils.get_buildid(bid) for bid in bids.keys()],
                    'signature': '',
                    'date': search_date,
                    '_aggs.build_id': ['install_time',
                                       '_cardinality.install_time',
-                                      'startup_crash'],
+                                      'startup_crash',
+                                      'platform_pretty_version'],
                    '_results_number': 0,
                    '_facets': 'signature',
                    '_facets_size': limit}
@@ -215,7 +217,7 @@ def get_sgns_data(channels, versions, signatures, extra, products, towait, date=
     today = lmdutils.get_date_ymd(date)
     few_days_ago = today - relativedelta(days=config.get_limit())
     search_date = socorro.SuperSearch.get_search_date(few_days_ago)
-    nbase = [0, 0, 0]
+    nbase = [0, 0, 0, {}]
     data = {}
     unique = {}
     unique_prod = defaultdict(lambda: dict())

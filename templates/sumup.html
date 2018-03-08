@@ -5,7 +5,7 @@
 <!DOCTYPE html>
 <html lang="en-us">
   <head>
-    <link rel="stylesheet" href="/stop.css?v=5">
+    <link rel="stylesheet" href="/stop.css?v=6">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <title>Crash data</title>
     <script type="text/javascript">
@@ -40,7 +40,7 @@
       {% for sgn, info in j -%}
       <tr>
         <th colspan="100">
-          <a href="{{ info['socorro_url'] }}" target="blank_">{{ sgn|e }}</a> in {{ prod }} &mdash; {{ chan }}
+          <a href="{{ info['socorro_url'] }}" target="blank_">{{ sgn|e }}</a> in {{ prod }} &mdash; {{ chan }} &nbsp; {% if prod != 'FennecAndroid' %}{% if 'Windows' in info['platforms'] -%}<span title="{{ info['platforms']['Windows'] }}%" class="windows"></span>{% endif -%}{% if 'OS X' in info['platforms'] -%}<span title="{{ info['platforms']['OS X'] }}%" class="osx"></span>{% endif -%}{% if 'Linux' in info['platforms'] -%}<span title="{{ info['platforms']['Linux'] }}%" class="linux"></span>{% endif -%}{% else -%}<span title="100%" class="android"></span>{% endif -%}
         </th>
       </tr>
       <tr>

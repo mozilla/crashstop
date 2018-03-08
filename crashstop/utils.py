@@ -19,6 +19,7 @@ from .const import RAW, INSTALLS
 HG_PAT = re.compile(r'^http[s]?://hg\.mozilla\.org/(?:releases/)?mozilla-([^/]*)/rev/([0-9a-f]+)$') # NOQA
 ESR_PAT = re.compile(r'^esr[0-9]+$')
 CHANS = set(config.get_channels())
+PLATFORMS = ['Windows', 'OS X', 'Linux', 'others']
 
 
 try:
@@ -278,3 +279,30 @@ def startup_crash_rate(data):
     if res == [0, 0]:
         return -1
     return int(math.ceil(float(res[1]) / float(res[0] + res[1]) * 100.))
+
+
+def analyze_platforms(data):
+    res = {}
+    for i in data:
+        platform = i['term']
+        if platform.startswith('Windows'):
+            short = 'Windows'
+        elif platform.startswith('OS X'):
+            short = 'OS X'
+        elif platform.startswith('Linux'):
+            short = 'Linux'
+        else:
+            short = 'others'
+        if short in res:
+            res[short] += i['count']
+        else:
+            res[short] = i['count']
+
+    return res
+
+
+def percentage_platforms(data):
+    total = float(sum(data.values()))
+    for p, v in data.items():
+        data[p] = math.ceil(float(v) / total * 1000.) / 10.
+    return data

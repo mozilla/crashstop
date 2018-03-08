@@ -47,14 +47,9 @@ def favicon():
     return send_from_directory('../static', 'clouseau.ico')
 
 
-@app.route('/GitHub-Mark-32px.png')
-def github_icon():
-    return send_from_directory('../static', 'GitHub-Mark-32px.png')
-
-
-@app.route('/warning-icon.png')
-def warning_icon():
-    return send_from_directory('../static', 'warning-icon.png')
+@app.route('/<image>.png')
+def image(image):
+    return send_from_directory('../static', image + '.png')
 
 
 @app.route('/stop.js')
