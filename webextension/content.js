@@ -116,6 +116,7 @@ if (container) {
                 }
             }
         });
+
         //const crashStop = "https://localhost:5000";
         const crashStop = "https://crash-stop.herokuapp.com";
         const sumup = crashStop + "/sumup.html";
@@ -123,7 +124,14 @@ if (container) {
         const spart = signatures.join("&") + "&";
         const extra = extraSocorroArgs.join("&");
         const crashStopLink = encodeURI(sumup + "?" + hpart + spart + extra);
+        const LSName = "Crash-Stop-V1";
         const iframe = document.createElement("iframe");
+        let bugid;
+        if (oldWay) {
+            bugid = document.getElementById("shorturl").getAttribute("href").slice("https://bugzil.la/".length);
+        } else {
+            bugid = document.getElementById("this-bug").innerText.split(" ")[1];
+        }
         window.addEventListener("message", function (e) {
             if (e.origin == crashStop) {
                 const iframe = document.getElementById("crash-stop-iframe");
@@ -132,10 +140,84 @@ if (container) {
         });
         iframe.setAttribute("src", crashStopLink);
         iframe.setAttribute("id", "crash-stop-iframe");
+        iframe.setAttribute("tabindex", "0");
         iframe.setAttribute("style", "display:block;width:100%;height:100%;border:0px;");
+        const titleDiv = document.createElement("div");
+        titleDiv.setAttribute("title", "Hide crash-stop");
+        titleDiv.setAttribute("style", "display:inline;cursor:pointer;color:black;font-size:13px");
+        const spinner = document.createElement("span");
+        spinner.setAttribute("role", "button");
+        spinner.setAttribute("tabindex", "0");
+        spinner.setAttribute("style", "padding-right:5px;cursor:pointer;color:#999;");
+
+        function hide() {
+            spinner.innerText = "▸";
+            spinner.setAttribute("aria-expanded", "false");
+            spinner.setAttribute("aria-label", "show crash-stop");
+            titleDiv.innerText = "Show table";
+        };
+        function show() {
+            spinner.innerText = "▾";
+            spinner.setAttribute("aria-expanded", "true");
+            spinner.setAttribute("aria-label", "hide crash-stop");
+            titleDiv.innerText = "Hide table";
+        };
+        function getLSData(id) {
+            const s = localStorage.getItem(LSName);
+            if (typeof id === "undefined") {
+                return s === null ? new Object() : JSON.parse(s);
+            } else {
+                return s === null ? false : JSON.parse(s).hasOwnProperty(id);
+            }
+        }
+        function setLSData(id) {
+            const o = getLSData();
+            o[bugid] = 1;
+            localStorage.setItem(LSName, JSON.stringify(o));
+        }
+        function unsetLSData(id) {
+            const o = getLSData();
+            if (o.hasOwnProperty(id)) {
+                delete o[bugid];
+                localStorage.setItem(LSName, JSON.stringify(o));
+            }
+        }
+        function toggle() {
+            if (spinner.getAttribute("aria-expanded") === "true") {
+                iframe.style.display = 'none';
+                hide();
+                setLSData(bugid);
+            } else {
+                if (!rightDiv.contains(iframe)) {
+                    rightDiv.append(iframe);
+                }
+                iframe.style.display = 'block';
+                show();
+                unsetLSData(bugid);
+            }
+        };
+        function toggleOnKey(e) {
+            if (e.keyCode == 13 || e.keyCode == 32) {
+                toggle();
+            }
+        };
+
+        spinner.addEventListener("click", toggle, false);
+        spinner.addEventListener("keydown", toggleOnKey, false);
+        titleDiv.addEventListener("click", toggle, false);
+        titleDiv.addEventListener("keydown", toggleOnKey, false);
+        const spanSpinner = document.createElement("span");
+        spanSpinner.append(spinner, titleDiv);
         const rightDiv = document.createElement("div");
         rightDiv.setAttribute("class", "value");
-        rightDiv.append(iframe);
+        rightDiv.append(spanSpinner);
+        //localStorage.removeItem(LSName);
+        if (getLSData(bugid)) {
+            hide();
+        } else {
+            rightDiv.append(iframe);
+            show();
+        }
         if (oldWay) {
             const tr = document.createElement("tr");
             const th = document.createElement("th");
