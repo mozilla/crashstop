@@ -25,7 +25,7 @@ if (container) {
             } else if (cb) {
                 s = s.slice(-1).trim();
             }
-            signatures.push("s=" + s);
+            signatures.push("s=" + escape(s));
         }
     });
     if (signatures.length != 0) {
@@ -38,7 +38,7 @@ if (container) {
                 const params = new URLSearchParams(a.href.slice(baseUrl.length));
                 for (let p of params) {
                     if (!sayNo.has(p[0])) {
-                        extraSocorroArgs.push(p[0] + "=" + p[1]);
+                        extraSocorroArgs.push(p[0] + "=" + escape(p[1]));
                     }
                 }
             }
@@ -111,7 +111,7 @@ if (container) {
                         if (rev.length > 12) {
                             rev = rev.slice(0, 12);
                         }
-                        hgrevs.push("h=" + repo + "|" + rev);
+                        hgrevs.push("h=" + repo + "%7C" /* | */ + rev);
                     }
                 }
             }
@@ -123,7 +123,7 @@ if (container) {
         const hpart = hgrevs.length != 0 ? (hgrevs.join("&") + "&") : "";
         const spart = signatures.join("&") + "&";
         const extra = extraSocorroArgs.join("&");
-        const crashStopLink = encodeURI(sumup + "?" + hpart + spart + extra);
+        const crashStopLink = sumup + "?" + hpart + spart + extra;
         const LSName = "Crash-Stop-V1";
         const iframe = document.createElement("iframe");
         let bugid;
