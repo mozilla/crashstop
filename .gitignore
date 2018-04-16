@@ -1,7 +1,7 @@
 *~
 *.pyc
 *.pyo
-mozdata.ini
+mozdata.ini.cfg
 bugzilla-crash-stop.zip
 .*
 test.py
