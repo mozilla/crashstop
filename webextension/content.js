@@ -67,7 +67,7 @@ function statusFlags(affected, productDetails) {
         }
         document.querySelectorAll("select[id^='cf_status_firefox']").forEach(select => {
             const val = select.options[select.selectedIndex].value;
-            if (val === "affected" || val === "fix-optional") {
+            if (val === "affected" || val === "fix-optional" || val === "?") {
                 const info = getMajorFromSF(select.id);
                 if (info.esr) {
                     if (info.version < productDetails.esr) {
