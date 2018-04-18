@@ -22,8 +22,8 @@ def get_client():
 
 def get_value(hgurls, sgns, extra):
     data = signatures.get_for_urls_sgns(hgurls, sgns, [], extra=extra, sumup=True)
-    data, links, versions, has_extra = signatures.prepare_bug_for_html(data, extra)
-    return (data, links, versions, has_extra)
+    data, links, versions, affected, has_extra = signatures.prepare_bug_for_html(data, extra)
+    return (data, links, versions, affected, has_extra)
 
 
 def get_hash(key):

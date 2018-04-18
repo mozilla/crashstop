@@ -3,6 +3,7 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from flask import request, render_template
+import json
 from . import utils, models, signatures, cache
 
 
@@ -61,18 +62,21 @@ def sumup():
     # cache.clear()
     sgns = request.args.getlist('s')
     hgurls = request.args.getlist('h')
+    addon_version = request.args.get('v', '')
     extra = dict(request.args)
-    if 's' in extra:
-        del extra['s']
-    if 'h' in extra:
-        del extra['h']
+    for x in 'shv':
+        if x in extra:
+            del extra[x]
 
-    data, links, versions, has_extra = cache.get_sumup(hgurls, sgns, extra)
+    data, links, versions, affected, has_extra = cache.get_sumup(hgurls, sgns, extra)
     return render_template('sumup.html',
                            data=data,
                            links=links,
                            versions=versions,
+                           affected=affected,
                            has_extra=has_extra,
                            products=utils.get_products(),
+                           addon_version=addon_version,
                            enumerate=enumerate,
-                           zip=zip)
+                           zip=zip,
+                           jsonify=json.dumps)

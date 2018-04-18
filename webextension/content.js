@@ -4,6 +4,97 @@
 
 "use strict";
 
+const VERSION = "0.2.5";
+
+async function fetchProductDetails() {
+    const url = "https://product-details.mozilla.org/1.0/firefox_versions.json";
+    const response = await fetch(url);
+    return await response.json();
+}
+
+function getMajorFromSF(s) {
+    // cf_status_firefox** or cf_status_firefox_esr**
+    const cf = "cf_status_firefox";
+    const esr = "_esr";
+    const last = s.slice(cf.length);
+    if (last.startsWith(esr)) {
+        return {esr: true,
+                version: parseInt(last.slice(esr.length), 10)};
+    }
+    return {esr: false,
+            version: parseInt(last, 10)};
+}
+
+function getMajor(s) {
+    return parseInt(s.split(".")[0], 10);
+}
+
+function getMajors(pd) {
+    // { FIREFOX_NIGHTLY: "61.0a1",
+    //   FIREFOX_AURORA: "",
+    //   FIREFOX_ESR: "52.7.3esr",
+    //   FIREFOX_ESR_NEXT: "",
+    //   LATEST_FIREFOX_DEVEL_VERSION: "60.0b13",
+    //   FIREFOX_DEVEDITION: "60.0b13",
+    //   LATEST_FIREFOX_OLDER_VERSION: "3.6.28",
+    //   LATEST_FIREFOX_RELEASED_DEVEL_VERSION: "60.0b13",
+    //   LATEST_FIREFOX_VERSION: "59.0.2" }
+    const res = {};
+    res.nightly = getMajor(pd.FIREFOX_NIGHTLY);
+    res.esr = getMajor(pd.FIREFOX_ESR);
+    res.beta = getMajor(pd.LATEST_FIREFOX_RELEASED_DEVEL_VERSION);
+    res.release = getMajor(pd.LATEST_FIREFOX_VERSION);
+    return res
+}
+
+function statusFlags(affected, productDetails) {
+    if (affected !== null && productDetails !== null) {
+        const affectedSelects = [];
+        const wontfixSelects = []
+        for (let chan in affected) {
+            const v = affected[chan];
+            if (productDetails[chan] === v) {
+                const vs = v.toString();
+                const flag = "cf_status_firefox" + (chan === "esr" ? ("_esr" + vs) : vs);
+                const select = document.getElementById(flag);
+                if (select !== null) {
+                    const val = select.options[select.selectedIndex].value;
+                    if (val === "---" || val === "unaffected") {
+                        affectedSelects.push(select);
+                    }
+                }
+            }
+        }
+        document.querySelectorAll("select[id^='cf_status_firefox']").forEach(select => {
+            const val = select.options[select.selectedIndex].value;
+            if (val === "affected" || val === "fix-optional") {
+                const info = getMajorFromSF(select.id);
+                if (info.esr) {
+                    if (info.version < productDetails.esr) {
+                        wontfixSelects.push(select);
+                    }
+                } else if (info.version < productDetails.release) {
+                    wontfixSelects.push(select);
+                }
+            }
+        });
+
+        if (affectedSelects.length == 0 && wontfixSelects.length == 0) {
+            return null;
+        }
+        return {affected: affectedSelects,
+                wontfix: wontfixSelects}
+    }
+    return null;
+}
+
+function addUpdateSFButton(statusFlagsSelects) {
+    if (statusFlagsSelects !== null) {
+        const e = document.getElementById("crash-stop-usf-button");
+        e.setAttribute("style", "display:block;position:relative;");
+    }
+}
+
 let oldWay = false;
 let container = document.getElementById("module-details-content");
 if (!container) {
@@ -29,6 +120,11 @@ if (container) {
         }
     });
     if (signatures.length != 0) {
+        let productDetails = null;
+        fetchProductDetails().then(data => {
+            productDetails = getMajors(data);
+        });
+
         const extraSocorroArgs = []
         const baseUrl = "https://crash-stats.mozilla.com/search/";
         const sayNo = new Set(["_columns", "_facets", "_facets_size", "_sort", "_results_number", "date", "channel", "product", "version", "build_id"]);
@@ -117,15 +213,17 @@ if (container) {
             }
         });
 
-        //const crashStop = "https://localhost:5000";
+        // const crashStop = "https://localhost:5000";
         const crashStop = "https://crash-stop.herokuapp.com";
         const sumup = crashStop + "/sumup.html";
         const hpart = hgrevs.length != 0 ? (hgrevs.join("&") + "&") : "";
         const spart = signatures.join("&") + "&";
         const extra = extraSocorroArgs.join("&");
-        const crashStopLink = sumup + "?" + hpart + spart + extra;
+        const vpart = "&v=" + VERSION;
+        const crashStopLink = sumup + "?" + hpart + spart + extra + vpart;
         const LSName = "Crash-Stop-V1";
         const iframe = document.createElement("iframe");
+        let statusFlagsSelects = null;
         let bugid;
         if (oldWay) {
             bugid = document.getElementById("shorturl").getAttribute("href").slice("https://bugzil.la/".length);
@@ -135,7 +233,9 @@ if (container) {
         window.addEventListener("message", function (e) {
             if (e.origin == crashStop) {
                 const iframe = document.getElementById("crash-stop-iframe");
-                iframe.style.height = e.data + "px";
+                iframe.style.height = e.data.height + "px";
+                statusFlagsSelects = statusFlags(e.data.affected, productDetails);
+                addUpdateSFButton(statusFlagsSelects);
             }
         });
         iframe.setAttribute("src", crashStopLink);
@@ -218,6 +318,42 @@ if (container) {
             rightDiv.append(iframe);
             show();
         }
+
+        // Update Status Flags button
+        function updateStatusFlags() {
+            if (statusFlagsSelects !== null) {
+                if (oldWay) {
+                    // <a href="#" name="tracking" class="edit_tracking_flags_link">edit</a>
+                    document.querySelectorAll("a.edit_tracking_flags_link[name='tracking']").forEach(a => {
+                        a.click();
+                    });
+                } else {
+                    document.getElementById("mode-btn").click();
+                    const e = document.getElementById("module-firefox-tracking-flags");
+                    e.scrollIntoView();
+                }
+                statusFlagsSelects.affected.map(function (select) {
+                    select.value = "affected";
+                    select.style = "color:red;";
+                });
+                statusFlagsSelects.wontfix.map(function (select) {
+                    select.value = "wontfix";
+                    select.style = "color:red;";
+                });
+            }
+        }
+
+        const divButton = document.createElement("div");
+        const button = document.createElement("button");
+        divButton.setAttribute("id", "crash-stop-usf-button");
+        divButton.setAttribute("style", "display:none;");
+        button.setAttribute("type", "button");
+        button.setAttribute("style", "position:absolute;right:0;bottom:-2px");
+        button.innerText = "Update status flags";
+        button.addEventListener("click", updateStatusFlags, false);
+        divButton.append(button);
+        rightDiv.append(divButton);
+
         if (oldWay) {
             const tr = document.createElement("tr");
             const th = document.createElement("th");

@@ -194,15 +194,31 @@ def prepare_signatures_for_html(data, product, channel):
     return data
 
 
+def get_affected(data, versions):
+    affected = {}
+
+    for prod, i in data.items():
+        for chan, j in i.items():
+            if chan not in affected:
+                affected[chan] = -1
+            vers = versions[(prod, chan)]
+            for k in j.values():
+                for d in k['dates']:
+                    ver = vers[d]
+                    major = utils.get_major(ver)
+                    affected[chan] = max(affected[chan], major)
+
+    return affected
+
+
 def prepare_bug_for_html(data, extra={}):
     params = utils.get_params_for_link()
     has_extra = utils.update_params(params, extra)
     links = {}
-    versions = data['versions']
+    _versions = data['versions']
     data = data['data']
-
-    for k, v in versions.items():
-        versions[k] = {utils.get_buildid(d): ver for d, ver in v.items()}
+    versions = {k: {utils.get_buildid(d): ver for d, ver in v.items()} for k, v in _versions.items()}
+    affected = get_affected(data, _versions)
 
     for prod, i in data.items():
         params['product'] = prod
@@ -241,4 +257,4 @@ def prepare_bug_for_html(data, extra={}):
                 if chan in data[prod]:
                     d[chan] = sorted(data[prod][chan].items())
 
-    return results, links, versions, has_extra
+    return results, links, versions, affected, has_extra
