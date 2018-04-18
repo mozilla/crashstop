@@ -219,8 +219,8 @@ if (container) {
         const hpart = hgrevs.length != 0 ? (hgrevs.join("&") + "&") : "";
         const spart = signatures.join("&") + "&";
         const extra = extraSocorroArgs.join("&");
-        const vpart = "&v=" + VERSION;
-        const crashStopLink = sumup + "?" + hpart + spart + extra + vpart;
+        const vpart = "v=" + VERSION + "&";
+        const crashStopLink = sumup + "?" + vpart + hpart + spart + extra;
         const LSName = "Crash-Stop-V1";
         const iframe = document.createElement("iframe");
         let statusFlagsSelects = null;
