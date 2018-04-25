@@ -203,7 +203,10 @@ def get_affected(data, versions):
                 affected[chan] = -1
             vers = versions[(prod, chan)]
             for k in j.values():
-                for d in k['dates']:
+                non_zero = [n for n, e in enumerate(k['raw']) if e != 0]
+                if non_zero:
+                    max_affected = max(non_zero)
+                    d = k['dates'][max_affected]
                     ver = vers[d]
                     major = utils.get_major(ver)
                     affected[chan] = max(affected[chan], major)
