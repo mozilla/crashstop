@@ -35,9 +35,10 @@ def get_bugs(start_date, end_date):
     TIMEOUT = 240
 
     def bug_handler(bug, data):
-        sgns = bug['cf_crash_signature']
-        sgns = utils.get_signatures([sgns])
-        data[str(bug['id'])] = sgns
+        if 'cf_crash_signature' in bug:
+            sgns = bug['cf_crash_signature']
+            sgns = utils.get_signatures([sgns])
+            data[str(bug['id'])] = sgns
 
     bugs = {}
     Bugzilla(get_bz_params(start_date, end_date),
