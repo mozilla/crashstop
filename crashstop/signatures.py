@@ -8,6 +8,8 @@ from dateutil.relativedelta import relativedelta
 from libmozdata import socorro
 from libmozdata import utils as lmdutils
 import pytz
+from sqlalchemy.exc import OperationalError
+import time
 from . import datacollector as dc
 from . import buildhub, config, models, patchinfo, tools, utils
 from .const import RAW, INSTALLS, STARTUP, PLATFORMS
@@ -82,6 +84,18 @@ def get_corrected_data(data):
     return res
 
 
+def get_all_versions(products, channels):
+    for _ in range(5):
+        try:
+            return models.Buildid.get_versions(products,
+                                               channels,
+                                               unicity=True)
+        except OperationalError:
+            time.sleep(0.1)
+
+    raise Exception('Not able to get all the versions from the DB')
+
+
 def get_for_urls_sgns(hg_urls, signatures, products,
                       sumup=False, extra={}, date='today'):
     data = {}
@@ -96,11 +110,11 @@ def get_for_urls_sgns(hg_urls, signatures, products,
     chan_rev = utils.analyze_hg_urls(hg_urls, sumup=sumup)
     towait, pushdates = dc.get_pushdates(chan_rev)
 
-    products = utils.get_products() if not products else products
     res['versions'] = versions = {}
     dates = {}
+    products = utils.get_products() if not products else products
     channels = utils.get_channels()
-    all_versions = models.Buildid.get_versions(products, channels, unicity=True)
+    all_versions = get_all_versions(products, channels)
     sgns_data = dc.get_sgns_data(channels, all_versions,
                                  signatures, extra,
                                  products, towait, date=date)
