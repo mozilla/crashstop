@@ -311,6 +311,18 @@ if (container) {
     const rightDiv = document.createElement("div");
     rightDiv.setAttribute("class", "value");
     rightDiv.append(spanSpinner);
+
+    const divButton = document.createElement("div");
+    const button = document.createElement("button");
+    divButton.setAttribute("id", "crash-stop-usf-button");
+    divButton.setAttribute("style", "display:none;");
+    button.setAttribute("type", "button");
+    button.setAttribute("style", "position:absolute;right:0;bottom:2px");
+    button.innerText = "Update status flags";
+    button.addEventListener("click", updateStatusFlags, false);
+    divButton.append(button);
+    rightDiv.append(divButton);
+
     //localStorage.removeItem(LSName);
     if (getLSData(bugid)) {
       hide();
@@ -342,17 +354,6 @@ if (container) {
         });
       }
     }
-
-    const divButton = document.createElement("div");
-    const button = document.createElement("button");
-    divButton.setAttribute("id", "crash-stop-usf-button");
-    divButton.setAttribute("style", "display:none;");
-    button.setAttribute("type", "button");
-    button.setAttribute("style", "position:absolute;right:0;bottom:-2px");
-    button.innerText = "Update status flags";
-    button.addEventListener("click", updateStatusFlags, false);
-    divButton.append(button);
-    rightDiv.append(divButton);
 
     if (oldWay) {
       const tr = document.createElement("tr");
