@@ -4,7 +4,7 @@
 
 "use strict";
 
-const VERSION = "0.2.5";
+const VERSION = "0.2.6";
 
 async function fetchProductDetails() {
   const url = "https://product-details.mozilla.org/1.0/firefox_versions.json";
