@@ -105,18 +105,11 @@ if (!container) {
 if (container) {
   const signatures = [];
   const selector = oldWay ? "cf_crash_signature_edit_container" : "field-value-cf_crash_signature";
+  const baseCrashUrl = "https://crash-stats.mozilla.com/signature/?signature=";
   document.querySelectorAll("#" + selector + " a").forEach(a => {
-    if (a.href.startsWith("https://crash-stats.mozilla.com/signature")) {
-      let s = a.innerText.trim();
-      const obat = s.startsWith("[@");
-      const cb = s.endsWith("]");
-      if (obat) {
-        s = cb ? s.slice(2, -1) : s.slice(2);
-        s = s.trim();
-      } else if (cb) {
-        s = s.slice(-1).trim();
-      }
-      signatures.push("s=" + escape(s));
+    if (a.href.startsWith(baseCrashUrl)) {
+      const encodedSignature = a.href.replace(baseCrashUrl, "")
+      signatures.push("s=" + encodedSignature);
     }
   });
   if (signatures.length != 0) {
@@ -134,7 +127,7 @@ if (container) {
         const params = new URLSearchParams(a.href.slice(baseUrl.length));
         for (let p of params) {
           if (!sayNo.has(p[0])) {
-            extraSocorroArgs.push(p[0] + "=" + escape(p[1]));
+            extraSocorroArgs.push(p[0] + "=" + encodeURIComponent(p[1]));
           }
         }
       }
