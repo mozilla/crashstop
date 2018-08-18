@@ -23,8 +23,7 @@ def filter_nightly_buildids(buildids):
         for facets in json['facets']['build_id']:
             count = facets['count']
             if count >= threshold:
-                bid = utils.get_build_date(facets['term'])
-                data[bid] = True
+                data[str(facets['term'])] = True
 
     params = {'product': '',
               'build_id': '',
@@ -42,20 +41,20 @@ def filter_nightly_buildids(buildids):
         pparams = copy.deepcopy(params)
         pparams['product'] = prod
         threshold = config.get_min_total(prod, 'nightly')
-        data[prod] = D = {}
-        for bids in Connection.chunks(buildids[prod]['nightly'], chunk_size=128):
+        data[prod] = data_prod = {}
+        for bids in Connection.chunks(buildids[prod]['nightly'], chunk_size=64):
             pparams = copy.deepcopy(pparams)
-            pparams['date'] = '>=' + bids[0][0].strftime('%Y-%m-%d')
+            pparams['date'] = '>=' + utils.get_build_date(bids[0][0]).strftime('%Y-%m-%d')
             pparams['build_id'] = L = []
             for b in bids:
-                L.append(utils.get_buildid(b[0]))
-                D[b[0]] = False
+                L.append(b[0])
+                data_prod[b[0]] = False
 
             hdler = functools.partial(handler, threshold)
             queries.append(Query(socorro.SuperSearch.URL,
                                  params=pparams,
                                  handler=hdler,
-                                 handlerdata=D))
+                                 handlerdata=data_prod))
 
     socorro.SuperSearch(queries=queries).wait()
 
