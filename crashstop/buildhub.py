@@ -156,7 +156,7 @@ def get_query():
                             'buildids': {
                                 'terms': {
                                     'field': 'build.id',
-                                    'size': 200,
+                                    'size': config.get_versions('Firefox', 'nightly') * 4,
                                     'order': {
                                         '_term': 'desc'
                                     }
